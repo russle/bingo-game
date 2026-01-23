@@ -645,6 +645,12 @@
         // Initialize Pool
         function initPool() {
             // Viewer only needs to render empty grid first, data will come from Firebase
+            if (!MAX_NUM || isNaN(MAX_NUM) || MAX_NUM < 10) {
+                const savedMax = localStorage.getItem('bingo_max_num');
+                MAX_NUM = savedMax ? parseInt(savedMax) : 75;
+                if (isNaN(MAX_NUM)) MAX_NUM = 75;
+            }
+
             pool = Array.from({ length: MAX_NUM }, (_, i) => i + 1);
 
             // Try load initial state from localStorage if available (optional for viewer)

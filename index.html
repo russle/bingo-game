@@ -672,10 +672,15 @@
             const savedMax = localStorage.getItem('bingo_max_num');
             if (savedMax) {
                 MAX_NUM = parseInt(savedMax);
-                maxNumInput.value = MAX_NUM;
-            } else {
-                MAX_NUM = parseInt(maxNumInput.value) || 75;
             }
+
+            // Validate MAX_NUM (Protection against NaN/Null corruption)
+            if (!MAX_NUM || isNaN(MAX_NUM) || MAX_NUM < 10) {
+                MAX_NUM = 75;
+                localStorage.setItem('bingo_max_num', MAX_NUM);
+            }
+
+            maxNumInput.value = MAX_NUM;
 
             pool = Array.from({ length: MAX_NUM }, (_, i) => i + 1);
             called = JSON.parse(localStorage.getItem('bingo_called') || '[]');
