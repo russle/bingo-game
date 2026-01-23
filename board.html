@@ -55,20 +55,33 @@
         }
 
         /* Sync Status Badge */
-        .sync-badge {
+        .sync-badge,
+        .viewer-badge {
             position: absolute;
             top: 20px;
-            left: 20px;
             display: flex;
             align-items: center;
             gap: 6px;
             font-size: 0.7rem;
             color: var(--text-dim);
             background: rgba(0, 0, 0, 0.4);
-            padding: 4px 10px;
+            padding: 4px 12px;
             border-radius: 20px;
             border: 1px solid var(--glass-border);
             z-index: 200;
+            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .sync-badge {
+            left: 20px;
+        }
+
+        .viewer-badge {
+            right: 20px;
+            color: var(--secondary-accent);
+            border-color: rgba(219, 39, 119, 0.3);
         }
 
         .sync-dot {
@@ -295,11 +308,10 @@
             gap: 8px;
             font-size: 0.85rem;
             color: var(--text-dim);
-            background: rgba(219, 39, 119, 0.2);
+            background: rgba(219, 39, 119, 0.15);
             padding: 4px 16px;
             border-radius: 50px;
-            border: 1px solid rgba(219, 39, 119, 0.4);
-            box-shadow: 0 0 15px rgba(219, 39, 119, 0.15);
+            border: 1px solid rgba(219, 39, 119, 0.3);
         }
 
         .bingo-stats span {
@@ -308,14 +320,6 @@
             font-family: 'JetBrains Mono', monospace;
             font-size: 1.1rem;
             text-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
-        }
-
-        .viewer-tag {
-            font-size: 0.9rem;
-            color: var(--secondary-accent);
-            font-weight: 600;
-            opacity: 0.8;
-            margin-left: 5px;
         }
 
         main {
@@ -653,7 +657,10 @@
                 font-size: 2rem;
             }
 
-            .sync-badge {
+            .sync-badge,
+            .viewer-badge {
+                position: static;
+                margin-bottom: 5px;
                 font-size: 0.65rem;
                 padding: 3px 8px;
             }
@@ -682,20 +689,23 @@
 <body>
 
     <header>
+        <!-- Left: Status -->
+        <div class="sync-badge">
+            <div class="sync-dot" id="syncStatus"></div>
+            <span id="syncText">SYNCING...</span>
+        </div>
+
+        <!-- Right: Role -->
+        <div class="viewer-badge">
+            觀眾模式
+        </div>
+
         <div class="logo-container">
             <div class="logo">Bingo | F200</div>
 
             <div class="header-status-row">
-                <!-- Sync placed FIRST (Top) -->
-                <div class="sync-badge">
-                    <div class="sync-dot" id="syncStatus"></div>
-                    <span id="syncText">SYNCING...</span>
-                </div>
-
-                <!-- Bingo Stats with Viewer Tag NEXT -->
                 <div class="bingo-stats">
                     賓果人數: <span id="bingoCount">0</span>
-                    <div class="viewer-tag">(觀眾模式)</div>
                 </div>
             </div>
         </div>
