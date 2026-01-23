@@ -9,8 +9,7 @@
         href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;900&family=JetBrains+Mono:wght@700&display=swap"
         rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <!-- Firebase SDK (v9 compatibility mode for quick integration) -->
+    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
     <style>
@@ -571,13 +570,11 @@
                 <span id="syncText">Offline Mode</span>
             </div>
         </div>
-        <div class="header-controls">
-            <div class="input-group">
-                <label>最大數字:</label>
-                <input type="number" id="maxNumInput" value="75" min="10" max="100">
+        <div class="logo">Bingo | F200
+            <div class="sync-badge">
+                <div class="sync-dot" id="syncStatus"></div>
+                <span id="syncText">Connecting...</span>
             </div>
-            <div class="stats-item">已抽出: <span id="calledCount">0</span> / <span id="maxNumDisplay">75</span></div>
-            <button class="btn-ghost" onclick="confirmReset()">重置遊戲</button>
         </div>
     </header>
 
@@ -585,11 +582,7 @@
         <!-- 抽號區 -->
         <section class="drawing-zone">
             <div class="number-orb" id="mainDisplay">--</div>
-
-            <div class="draw-btn-container">
-                <button class="btn-draw" id="drawBtn" onclick="draw()">DRAW</button>
-            </div>
-
+            <!-- DRAW button removed for viewer -->
             <div class="recent-history" id="recentHistory">
                 <div class="history-dot">-</div>
                 <div class="history-dot">-</div>
@@ -610,10 +603,7 @@
         </section>
     </main>
 
-    <div class="qr-section collapsed" id="qrToggle" onclick="this.classList.toggle('collapsed')">
-        <div id="qrcode"></div>
-        <span class="qr-label">掃碼加入遊戲</span>
-    </div>
+    <!-- QR Code section removed for viewer -->
 
     <script>
         let MAX_NUM = 75;
@@ -651,44 +641,23 @@
         const syncStatus = document.getElementById('syncStatus');
         const syncText = document.getElementById('syncText');
 
-        // Setup QR Code
-        function setupQR() {
-            // Generate URL for the viewer page (board.html)
-            const viewerUrl = new URL('board.html', window.location.href).href;
-
-            new QRCode(document.getElementById("qrcode"), {
-                text: viewerUrl,
-                width: 120,
-                height: 120,
-                colorDark: "#000000",
-                colorLight: "#ffffff",
-                correctLevel: QRCode.CorrectLevel.H
-            });
-        }
 
         // Initialize Pool
         function initPool() {
-            // Load saved state
-            const savedMax = localStorage.getItem('bingo_max_num');
-            if (savedMax) {
-                MAX_NUM = parseInt(savedMax);
-                maxNumInput.value = MAX_NUM;
-            } else {
-                MAX_NUM = parseInt(maxNumInput.value) || 75;
+            // Viewer only needs to render empty grid first, data will come from Firebase
+            pool = Array.from({ length: MAX_NUM }, (_, i) => i + 1);
+
+            // Try load initial state from localStorage if available (optional for viewer)
+            const savedCalled = localStorage.getItem('bingo_called');
+            if (savedCalled) {
+                called = JSON.parse(savedCalled);
+                called.forEach(num => {
+                    const idx = pool.indexOf(num);
+                    if (idx > -1) pool.splice(idx, 1);
+                });
             }
 
-            pool = Array.from({ length: MAX_NUM }, (_, i) => i + 1);
-            called = JSON.parse(localStorage.getItem('bingo_called') || '[]');
-
-            // Remove called numbers from pool
-            called.forEach(num => {
-                const idx = pool.indexOf(num);
-                if (idx > -1) pool.splice(idx, 1);
-            });
-
-            maxNumDisplay.innerText = MAX_NUM;
             renderGrid();
-            updateStats();
             renderRecentHistory();
 
             if (called.length > 0) {
@@ -698,28 +667,9 @@
                 mainDisplay.innerText = "--";
                 mainDisplay.classList.remove('active');
             }
-
         }
 
-        // Handle Max Num Change
-        maxNumInput.addEventListener('change', () => {
-            const val = parseInt(maxNumInput.value);
-            if (val >= 10 && val <= 100) {
-                if (called.length > 0) {
-                    if (confirm("更改最大數字將會重置目前進度，確定要繼續嗎？")) {
-                        MAX_NUM = val;
-                        localStorage.setItem('bingo_max_num', MAX_NUM);
-                        executeReset();
-                    } else {
-                        maxNumInput.value = MAX_NUM;
-                    }
-                } else {
-                    MAX_NUM = val;
-                    localStorage.setItem('bingo_max_num', MAX_NUM);
-                    initPool();
-                }
-            }
-        });
+        // Handle Max Num Change (Removed)
 
         // Render Grid
         function renderGrid() {
@@ -743,15 +693,9 @@
             }
         }
 
+        // updateStats is not needed for viewer as there is no button
         function updateStats() {
-            calledCountDisplay.innerText = called.length;
-            if (called.length >= MAX_NUM) {
-                drawBtn.disabled = true;
-                drawBtn.innerText = "FINISH";
-            } else {
-                drawBtn.disabled = false;
-                drawBtn.innerText = "DRAW";
-            }
+            // Viewer doesn't have stats or buttons
         }
 
         function renderRecentHistory() {
@@ -771,116 +715,13 @@
             });
         }
 
-        function draw() {
-            if (isRolling || pool.length === 0) return;
+        // Drawing logic removed for viewer
 
-            isRolling = true;
-            drawBtn.disabled = true;
-            mainDisplay.classList.remove('active');
+        // Victory animation removed for viewer (optional, but requested simple board)
 
-            const prevLatest = document.querySelector('.grid-item.latest');
-            if (prevLatest) prevLatest.classList.remove('latest');
+        // Reset logic removed for viewer
 
-            let rolls = 0;
-            const rollInterval = setInterval(() => {
-                const tempVal = pool[Math.floor(Math.random() * pool.length)];
-                mainDisplay.innerText = tempVal;
-                rolls++;
-
-                if (rolls > 20) {
-                    clearInterval(rollInterval);
-                    finalizeDraw();
-                }
-            }, 60);
-        }
-
-        function finalizeDraw() {
-            const idx = Math.floor(Math.random() * pool.length);
-            const result = pool.splice(idx, 1)[0];
-            called.unshift(result);
-            localStorage.setItem('bingo_called', JSON.stringify(called));
-
-            // Sync to Firebase
-            if (db) {
-                db.ref('bingo/state').set({
-                    called: called,
-                    maxNum: MAX_NUM,
-                    lastUpdate: Date.now()
-                });
-            }
-
-            mainDisplay.innerText = result;
-            mainDisplay.classList.add('active');
-
-            const gridItem = document.getElementById(`num-${result}`);
-            if (gridItem) {
-                gridItem.classList.add('called', 'latest');
-                gridItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
-
-            updateStats();
-            renderRecentHistory();
-            triggerVictory();
-
-            isRolling = false;
-            if (pool.length > 0) drawBtn.disabled = false;
-        }
-
-        function triggerVictory() {
-            const duration = 2000;
-            const animationEnd = Date.now() + duration;
-            const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
-
-            function randomInRange(min, max) {
-                return Math.random() * (max - min) + min;
-            }
-
-            const interval = setInterval(function () {
-                const timeLeft = animationEnd - Date.now();
-                if (timeLeft <= 0) return clearInterval(interval);
-
-                const particleCount = 50 * (timeLeft / duration);
-                confetti(Object.assign({}, defaults, {
-                    particleCount,
-                    origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 }
-                }));
-                confetti(Object.assign({}, defaults, {
-                    particleCount,
-                    origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 }
-                }));
-            }, 250);
-        }
-
-        // Reset Logic
-        function confirmReset() {
-            if (confirm("確定要重置遊戲嗎？")) {
-                executeReset();
-            }
-        }
-
-        function executeReset() {
-            localStorage.removeItem('bingo_called');
-            called = [];
-            mainDisplay.innerText = "--";
-            mainDisplay.classList.remove('active');
-
-            if (db) {
-                db.ref('bingo/state').set({
-                    called: [],
-                    maxNum: MAX_NUM,
-                    lastUpdate: Date.now()
-                });
-            }
-
-            initPool();
-        }
-
-        // Keyboard Support
-        document.addEventListener('keydown', (e) => {
-            if (e.code === 'Space' && !isRolling && pool.length > 0) {
-                draw();
-            }
-        });
+        // Keyboard support removed
 
         // Setup Firebase Listeners (Run once)
         function setupFirebaseListeners() {
@@ -931,7 +772,6 @@
                         });
 
                         renderGrid();
-                        updateStats();
                         renderRecentHistory();
 
                         if (called.length > 0) {
@@ -948,7 +788,6 @@
 
         // Start
         initPool();
-        setupQR();
         setupFirebaseListeners();
 
     </script>
