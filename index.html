@@ -696,48 +696,6 @@
                 mainDisplay.classList.remove('active');
             }
 
-            // Bind Firebase listeners if available
-            if (db) {
-                db.ref('.info/connected').on('value', (snap) => {
-                    if (snap.val() === true) {
-                        syncStatus.classList.add('online');
-                        syncText.innerText = "Real-time Sync ON";
-                    } else {
-                        syncStatus.classList.remove('online');
-                        syncText.innerText = "Syncing...";
-                    }
-                });
-
-                // Listen for changes from other masters
-                db.ref('bingo/state').on('value', (snapshot) => {
-                    const data = snapshot.val();
-                    if (data && !isRolling) {
-                        // 如果雲端數據較新，且目前沒有在滾動，則同步本地
-                        if (JSON.stringify(data.called) !== JSON.stringify(called)) {
-                            called = data.called;
-                            localStorage.setItem('bingo_called', JSON.stringify(called));
-                            MAX_NUM = data.maxNum || 75;
-                            maxNumInput.value = MAX_NUM;
-
-                            // 更新 Pool
-                            pool = Array.from({ length: MAX_NUM }, (_, i) => i + 1);
-                            called.forEach(num => {
-                                const idx = pool.indexOf(num);
-                                if (idx > -1) pool.splice(idx, 1);
-                            });
-
-                            renderGrid();
-                            updateStats();
-                            renderRecentHistory();
-
-                            if (called.length > 0) {
-                                mainDisplay.innerText = called[0];
-                                mainDisplay.classList.add('active');
-                            }
-                        }
-                    }
-                });
-            }
         }
 
         // Handle Max Num Change
@@ -921,9 +879,74 @@
             }
         });
 
+        // Setup Firebase Listeners (Run once)
+        function setupFirebaseListeners() {
+            if (!db) return;
+
+            db.ref('.info/connected').on('value', (snap) => {
+                if (snap.val() === true) {
+                    syncStatus.classList.add('online');
+                    syncText.innerText = "Real-time Sync ON";
+                } else {
+                    syncStatus.classList.remove('online');
+                    syncText.innerText = "Syncing...";
+                }
+            });
+
+            // Listen for changes from other masters
+            db.ref('bingo/state').on('value', (snapshot) => {
+                const data = snapshot.val();
+
+                // 如果是空資料（例如剛重置），也要同步
+                if (!data) {
+                    return;
+                }
+
+                if (!isRolling) {
+                    // 同步雲端資料到本地
+                    if (JSON.stringify(data.called) !== JSON.stringify(called)) {
+                        console.log("Syncing from cloud:", data.called);
+                        // 確保 called 是陣列 (剛重置時可能是 undefined)
+                        called = data.called || [];
+
+                        localStorage.setItem('bingo_called', JSON.stringify(called));
+
+                        // 同步 Max Num
+                        if (data.maxNum && data.maxNum !== MAX_NUM) {
+                            MAX_NUM = data.maxNum;
+                            maxNumInput.value = MAX_NUM;
+                            pool = Array.from({ length: MAX_NUM }, (_, i) => i + 1);
+                        } else if (pool.length === 0 && called.length === 0) {
+                            // 若 pool 為空且無 called（重置狀態），重建 pool
+                            pool = Array.from({ length: MAX_NUM }, (_, i) => i + 1);
+                        }
+
+                        // Remove called numbers from pool
+                        called.forEach(num => {
+                            const idx = pool.indexOf(num);
+                            if (idx > -1) pool.splice(idx, 1);
+                        });
+
+                        renderGrid();
+                        updateStats();
+                        renderRecentHistory();
+
+                        if (called.length > 0) {
+                            mainDisplay.innerText = called[0];
+                            mainDisplay.classList.add('active');
+                        } else {
+                            mainDisplay.innerText = "--";
+                            mainDisplay.classList.remove('active');
+                        }
+                    }
+                }
+            });
+        }
+
         // Start
         initPool();
         setupQR();
+        setupFirebaseListeners();
 
     </script>
 </body>
