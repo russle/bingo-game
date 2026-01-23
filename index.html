@@ -271,6 +271,46 @@
             transform: translateY(-1px);
         }
 
+        .bingo-counter {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(219, 39, 119, 0.15);
+            padding: 6px 16px;
+            border-radius: 12px;
+            border: 1px solid rgba(219, 39, 119, 0.4);
+            color: #ffffff;
+            font-weight: 600;
+        }
+
+        .bingo-val {
+            color: var(--secondary-accent);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.2rem;
+            min-width: 25px;
+            text-align: center;
+        }
+
+        .btn-mini {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.2rem;
+            transition: all 0.2s;
+        }
+
+        .btn-mini:hover {
+            background: var(--secondary-accent);
+            border-color: var(--secondary-accent);
+        }
+
         main {
             flex: 1;
             display: flex;
@@ -581,6 +621,12 @@
                 <input type="number" id="maxNumInput" value="75" min="10" max="100">
             </div>
             <div class="stats-item">已抽出: <span id="calledCount">0</span> / <span id="maxNumDisplay">75</span></div>
+            <div class="bingo-counter">
+                <span>賓果人數:</span>
+                <button class="btn-mini" onclick="changeBingoCount(-1)">-</button>
+                <span class="bingo-val" id="bingoCount">0</span>
+                <button class="btn-mini" onclick="changeBingoCount(1)">+</button>
+            </div>
             <button class="btn-ghost" onclick="confirmReset()">重置遊戲</button>
         </div>
     </header>
@@ -628,6 +674,7 @@
     <script>
         let MAX_NUM = 75;
         let called = [];
+        let bingoCount = 0;
         let isRolling = false;
         let isMaster = true; // 是否為主控端 (預設是)
 
@@ -658,6 +705,7 @@
         const maxNumDisplay = document.getElementById('maxNumDisplay');
         const maxNumInput = document.getElementById('maxNumInput');
         const recentHistory = document.getElementById('recentHistory');
+        const bingoCountDisplay = document.getElementById('bingoCount');
         const syncStatus = document.getElementById('syncStatus');
         const syncText = document.getElementById('syncText');
 
@@ -705,6 +753,7 @@
             renderGrid();
             updateStats();
             renderRecentHistory();
+            updateBingoUI();
 
             if (called.length > 0) {
                 mainDisplay.innerText = called[0];
@@ -820,6 +869,7 @@
                 db.ref('bingo/state').set({
                     called: called,
                     maxNum: MAX_NUM,
+                    bingoCount: bingoCount,
                     lastUpdate: Date.now()
                 });
             }
@@ -865,6 +915,22 @@
             }, 250);
         }
 
+        function changeBingoCount(delta) {
+            bingoCount = Math.max(0, bingoCount + delta);
+            updateBingoUI();
+
+            // Sync to Firebase
+            if (db) {
+                db.ref('bingo/state/bingoCount').set(bingoCount);
+            }
+        }
+
+        function updateBingoUI() {
+            if (bingoCountDisplay) {
+                bingoCountDisplay.innerText = bingoCount;
+            }
+        }
+
         // Reset Logic
         function confirmReset() {
             if (confirm("確定要重置遊戲嗎？")) {
@@ -882,6 +948,7 @@
                 db.ref('bingo/state').set({
                     called: [],
                     maxNum: MAX_NUM,
+                    bingoCount: 0,
                     lastUpdate: Date.now()
                 });
             }
@@ -936,6 +1003,12 @@
                         } else if (pool.length === 0 && called.length === 0) {
                             // 若 pool 為空且無 called（重置狀態），重建 pool
                             pool = Array.from({ length: MAX_NUM }, (_, i) => i + 1);
+                        }
+
+                        // 同步 Bingo Count
+                        if (data.bingoCount !== undefined && data.bingoCount !== bingoCount) {
+                            bingoCount = data.bingoCount;
+                            updateBingoUI();
                         }
 
                         // Remove called numbers from pool

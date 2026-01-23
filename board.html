@@ -268,6 +268,27 @@
             transform: translateY(-1px);
         }
 
+        .bingo-stats {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 1rem;
+            color: var(--text-dim);
+            background: rgba(219, 39, 119, 0.15);
+            padding: 4px 14px;
+            border-radius: 12px;
+            border: 1px solid rgba(219, 39, 119, 0.3);
+            margin-right: 15px;
+        }
+
+        .bingo-stats span {
+            color: var(--secondary-accent);
+            font-weight: 800;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.2rem;
+            text-shadow: 0 0 10px rgba(219, 39, 119, 0.4);
+        }
+
         main {
             flex: 1;
             display: flex;
@@ -636,6 +657,9 @@
                 <div class="sync-dot" id="syncStatus"></div>
                 <span id="syncText">Connecting...</span>
             </div>
+            <div class="bingo-stats">
+                賓果人數: <span id="bingoCount">0</span>
+            </div>
         </div>
     </header>
 
@@ -670,6 +694,7 @@
     <script>
         let MAX_NUM = 75;
         let called = [];
+        let bingoCount = 0;
         let isRolling = false;
         let isMaster = true; // 是否為主控端 (預設是)
 
@@ -696,6 +721,7 @@
         const mainDisplay = document.getElementById('mainDisplay');
         const boardGrid = document.getElementById('boardGrid');
         const recentHistory = document.getElementById('recentHistory');
+        const bingoCountDisplay = document.getElementById('bingoCount');
         const syncStatus = document.getElementById('syncStatus');
         const syncText = document.getElementById('syncText');
 
@@ -723,6 +749,7 @@
 
             renderGrid();
             renderRecentHistory();
+            updateBingoUI();
 
             if (called.length > 0) {
                 mainDisplay.innerText = called[0];
@@ -867,6 +894,12 @@
                             pool = Array.from({ length: MAX_NUM }, (_, i) => i + 1);
                         }
 
+                        // 同步 Bingo Count
+                        if (data.bingoCount !== undefined && data.bingoCount !== bingoCount) {
+                            bingoCount = data.bingoCount;
+                            updateBingoUI();
+                        }
+
                         called.forEach(num => {
                             const idx = pool.indexOf(num);
                             if (idx > -1) pool.splice(idx, 1);
@@ -885,6 +918,12 @@
                     }
                 }
             });
+        }
+
+        function updateBingoUI() {
+            if (bingoCountDisplay) {
+                bingoCountDisplay.innerText = bingoCount;
+            }
         }
 
         // Start
