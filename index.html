@@ -663,7 +663,7 @@
     <div class="bottom-right-controls">
         <div class="sync-badge">
             <div class="sync-dot" id="syncStatus"></div>
-            <span id="syncText">Offline Mode</span>
+            <span id="syncText">SYNCING...</span>
         </div>
         <div class="qr-section collapsed" id="qrToggle" onclick="this.classList.toggle('collapsed')">
             <div id="qrcode"></div>
@@ -970,10 +970,10 @@
             db.ref('.info/connected').on('value', (snap) => {
                 if (snap.val() === true) {
                     syncStatus.classList.add('online');
-                    syncText.innerText = "Real-time Sync ON";
+                    syncText.innerText = "SYNC ON";
                 } else {
                     syncStatus.classList.remove('online');
-                    syncText.innerText = "Syncing...";
+                    syncText.innerText = "SYNCING...";
                 }
             });
 

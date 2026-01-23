@@ -654,8 +654,6 @@
             }
 
             .sync-badge {
-                position: static;
-                margin-bottom: 5px;
                 font-size: 0.65rem;
                 padding: 3px 8px;
             }
@@ -691,7 +689,7 @@
                 <!-- Sync placed FIRST (Top) -->
                 <div class="sync-badge">
                     <div class="sync-dot" id="syncStatus"></div>
-                    <span id="syncText">Connecting...</span>
+                    <span id="syncText">SYNCING...</span>
                 </div>
 
                 <!-- Bingo Stats with Viewer Tag NEXT -->
@@ -895,11 +893,11 @@
             db.ref('.info/connected').on('value', (snap) => {
                 if (snap.val() === true) {
                     syncStatus.classList.add('online');
-                    syncText.innerText = "Real-time Sync ON";
+                    syncText.innerText = "SYNC ON";
                     console.log("Firebase Connected");
                 } else {
                     syncStatus.classList.remove('online');
-                    syncText.innerText = "Syncing...";
+                    syncText.innerText = "SYNCING...";
                     console.log("Firebase Disconnected/Syncing...");
                 }
             });
