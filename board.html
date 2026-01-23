@@ -58,20 +58,24 @@
         .sync-badge,
         .viewer-badge {
             position: absolute;
-            top: 20px;
+            top: 15px;
             display: flex;
             align-items: center;
+            justify-content: center;
             gap: 6px;
             font-size: 0.7rem;
+            height: 26px;
+            line-height: normal;
             color: var(--text-dim);
             background: rgba(0, 0, 0, 0.4);
-            padding: 4px 12px;
+            padding: 0 12px;
             border-radius: 20px;
             border: 1px solid var(--glass-border);
             z-index: 200;
             text-transform: uppercase;
             font-weight: 600;
             letter-spacing: 0.5px;
+            box-sizing: border-box;
         }
 
         .sync-badge {
@@ -660,9 +664,10 @@
             .sync-badge,
             .viewer-badge {
                 position: absolute;
-                top: 10px;
+                top: 12px;
                 font-size: 0.6rem;
-                padding: 2px 8px;
+                height: 22px;
+                padding: 0 8px;
             }
 
             .sync-badge {
@@ -699,14 +704,11 @@
     <header>
         <!-- Left: Status -->
         <div class="sync-badge">
-            <div class="sync-dot" id="syncStatus"></div>
-            <span id="syncText">SYNCING...</span>
+            <div class="sync-dot" id="syncStatus"></div><span id="syncText">SYNCING...</span>
         </div>
 
         <!-- Right: Role -->
-        <div class="viewer-badge">
-            觀眾模式
-        </div>
+        <div class="viewer-badge"><span>觀眾模式</span></div>
 
         <div class="logo-container">
             <div class="logo">Bingo | F200</div>
