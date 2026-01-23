@@ -537,6 +537,19 @@
                 gap: 15px;
             }
 
+            .logo {
+                font-size: 1.4rem;
+                text-align: center;
+                flex-direction: column;
+                display: flex;
+                align-items: center;
+            }
+
+            .sync-badge {
+                margin-left: 0;
+                margin-top: 8px;
+            }
+
             main {
                 flex-direction: column;
                 overflow-y: auto;
@@ -556,6 +569,40 @@
 
             .grid-container {
                 grid-template-columns: repeat(10, 1fr);
+            }
+        }
+
+        /* Extra small screens (phones) */
+        @media (max-width: 576px) {
+            header {
+                padding: 10px 15px;
+            }
+
+            .logo {
+                font-size: 1.2rem;
+            }
+
+            .sync-badge {
+                font-size: 0.65rem;
+                padding: 3px 8px;
+            }
+
+            .number-orb {
+                width: clamp(180px, 60vw, 300px);
+                height: clamp(180px, 60vw, 300px);
+                font-size: clamp(4rem, 12vw, 8rem);
+                margin-bottom: 20px;
+            }
+
+            .recent-history {
+                gap: 8px;
+                padding: 6px 12px;
+            }
+
+            .history-dot {
+                width: 32px;
+                height: 32px;
+                font-size: 0.8rem;
             }
         }
     </style>
