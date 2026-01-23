@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bingo 遊戲</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;900&family=JetBrains+Mono:wght@700&display=swap"
+        rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <!-- Firebase SDK (v9 compatibility mode for quick integration) -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <style>
+        :root {
+            --bg-color: #0b0114;
+            --glass-bg: rgba(26, 6, 45, 0.85);
+            --glass-border: rgba(251, 191, 36, 0.3);
+            --primary-accent: #fbbf24;
+            /* Gold */
+            --secondary-accent: #db2777;
+            /* Festive Pink/Red */
+            --highlight: #7f1d1d;
+            /* Deep Red */
+            --text-main: #ffffff;
+            --text-dim: #d8b4fe;
+            /* Light Purple */
+            --card-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+            --gold-glow: 0 0 15px rgba(251, 191, 36, 0.4);
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background: radial-gradient(circle at center, #581c87 0%, #0b0114 100%);
+            color: var(--text-main);
+            font-family: 'Outfit', sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Sync Status Badge */
+        .sync-badge {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            background: rgba(0, 0, 0, 0.4);
+            padding: 4px 10px;
+            border-radius: 20px;
+            border: 1px solid var(--glass-border);
+            margin-left: 10px;
+        }
+
+        .sync-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #6b7280;
+        }
+
+        .sync-dot.online {
+            background: #10b981;
+            box-shadow: 0 0 10px #10b981;
+        }
+
+        /* QR Code Section */
+        .qr-section {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            padding: 15px;
+            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            z-index: 200;
+            box-shadow: var(--card-shadow);
+            transform: scale(0.9);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .qr-section:hover {
+            transform: scale(1);
+        }
+
+        .qr-section.collapsed {
+            width: 50px;
+            height: 50px;
+            padding: 0;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .qr-section.collapsed #qrcode,
+        .qr-section.collapsed span {
+            display: none;
+        }
+
+        .qr-section.collapsed::after {
+            content: "QR";
+            font-weight: 800;
+            color: var(--primary-accent);
+        }
+
+        #qrcode {
+            background: white;
+            padding: 8px;
+            border-radius: 8px;
+        }
+
+        .qr-label {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            font-weight: 600;
+        }
+
+        /* Starfield Effect */
+        body::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            background: transparent;
+            background-image:
+                radial-gradient(white, rgba(255, 255, 255, .2) 2px, transparent 40px),
+                radial-gradient(white, rgba(255, 255, 255, .15) 1px, transparent 30px),
+                radial-gradient(white, rgba(255, 255, 255, .1) 2px, transparent 20px);
+            background-size: 550px 550px, 350px 350px, 250px 250px;
+            background-position: 0 0, 40px 60px, 130px 270px;
+            opacity: 0.3;
+            animation: stars 20s linear infinite;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        @keyframes stars {
+            from {
+                transform: translateY(0);
+            }
+
+            to {
+                transform: translateY(-550px);
+            }
+        }
+
+        header {
+            height: 80px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 40px;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(15px);
+            border-bottom: 1px solid var(--glass-border);
+            z-index: 100;
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: 900;
+            letter-spacing: -1px;
+            background: linear-gradient(to right, #fbbf24, #db2777, #7f1d1d);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-transform: uppercase;
+            filter: drop-shadow(0 0 10px rgba(251, 191, 36, 0.4));
+        }
+
+        .header-controls {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .input-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 0.9rem;
+            color: var(--text-dim);
+            background: rgba(0, 0, 0, 0.3);
+            padding: 6px 16px;
+            border-radius: 12px;
+            border: 1px solid var(--glass-border);
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .input-group label {
+            white-space: nowrap;
+        }
+
+        input[type="number"] {
+            background: transparent;
+            border: none;
+            color: var(--primary-accent);
+            width: 50px;
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            font-size: 1.1rem;
+            outline: none;
+            padding: 0;
+            text-align: center;
+        }
+
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .stats-item {
+            font-size: 1rem;
+            color: var(--text-dim);
+            white-space: nowrap;
+        }
+
+        .stats-item span {
+            color: var(--primary-accent);
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+            text-shadow: 0 0 10px rgba(251, 191, 36, 0.5);
+        }
+
+        .btn-ghost {
+            background: transparent;
+            border: 1px solid var(--glass-border);
+            color: var(--primary-accent);
+            padding: 10px 24px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            white-space: nowrap;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn-ghost:hover {
+            background: rgba(251, 191, 36, 0.1);
+            border-color: var(--primary-accent);
+            box-shadow: var(--gold-glow);
+            transform: translateY(-1px);
+        }
+
+        main {
+            flex: 1;
+            display: flex;
+            padding: 30px;
+            gap: 30px;
+            z-index: 10;
+        }
+
+        .drawing-zone {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: var(--glass-bg);
+            backdrop-filter: blur(25px);
+            border: 1px solid var(--glass-border);
+            border-radius: 32px;
+            box-shadow: var(--card-shadow);
+            position: relative;
+            min-width: 440px;
+            overflow: hidden;
+        }
+
+        .drawing-zone::after {
+            content: "";
+            position: absolute;
+            top: -20%;
+            left: -20%;
+            width: 140%;
+            height: 140%;
+            background: radial-gradient(circle, rgba(127, 29, 29, 0.1) 0%, transparent 60%);
+            z-index: -1;
+        }
+
+        .number-orb {
+            width: clamp(240px, 42vh, 420px);
+            height: clamp(240px, 42vh, 420px);
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, rgba(244, 63, 94, 0.2), rgba(127, 29, 29, 0.8));
+            border: 3px solid var(--glass-border);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: clamp(6rem, 16vh, 12rem);
+            font-weight: 950;
+            color: var(--primary-accent);
+            margin-bottom: 40px;
+            box-shadow:
+                inset 0 0 50px rgba(0, 0, 0, 0.6),
+                0 20px 50px rgba(127, 29, 29, 0.4),
+                var(--gold-glow);
+            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            text-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+            position: relative;
+        }
+
+        .number-orb.active {
+            transform: scale(1.05);
+            background: radial-gradient(circle at 30% 30%, #f43f5e, #7f1d1d);
+            border-color: #fbbf24;
+            box-shadow:
+                0 0 80px rgba(251, 191, 36, 0.3),
+                inset 0 0 30px rgba(255, 255, 255, 0.2);
+            text-shadow: 0 0 30px rgba(251, 191, 36, 0.6);
+            color: #ffffff;
+        }
+
+        .draw-btn-container {
+            position: relative;
+        }
+
+        .btn-draw {
+            background: linear-gradient(135deg, #7f1d1d, #db2777, #9333ea);
+            background-size: 200% 200%;
+            animation: gradientMove 5s ease infinite;
+            color: white;
+            border: 2px solid var(--glass-border);
+            padding: 22px 70px;
+            font-size: 2.2rem;
+            font-weight: 900;
+            border-radius: 100px;
+            cursor: pointer;
+            box-shadow: 0 15px 45px rgba(127, 29, 29, 0.4);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            letter-spacing: 4px;
+            text-transform: uppercase;
+        }
+
+        @keyframes gradientMove {
+            0% {
+                background-position: 0% 50%;
+            }
+
+            50% {
+                background-position: 100% 50%;
+            }
+
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
+        .btn-draw:hover {
+            transform: scale(1.05) translateY(-5px);
+            box-shadow: 0 20px 60px rgba(251, 191, 36, 0.4);
+            border-color: var(--primary-accent);
+        }
+
+        .btn-draw:active {
+            transform: scale(0.98);
+        }
+
+        .btn-draw:disabled {
+            background: #2a1f3d;
+            cursor: not-allowed;
+            opacity: 0.6;
+            box-shadow: none;
+        }
+
+        /* 歷史橫條 */
+        .recent-history {
+            position: absolute;
+            bottom: 40px;
+            display: flex;
+            gap: 15px;
+            padding: 10px 20px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 20px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .history-dot {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: rgba(88, 28, 135, 0.2);
+            border: 1.5px solid var(--glass-border);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--primary-accent);
+            transition: all 0.3s ease;
+        }
+
+        /* 右側：數字盤面 */
+        .board-zone {
+            flex: 1.5;
+            background: var(--glass-bg);
+            backdrop-filter: blur(25px);
+            border: 1px solid var(--glass-border);
+            border-radius: 32px;
+            padding: 30px;
+            box-shadow: var(--card-shadow);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .board-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-shrink: 0;
+            border-bottom: 1.5px solid var(--glass-border);
+            padding-bottom: 15px;
+        }
+
+        .board-title {
+            font-size: 1.3rem;
+            font-weight: 800;
+            color: var(--primary-accent);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            filter: drop-shadow(0 0 5px rgba(251, 191, 36, 0.3));
+        }
+
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 10px;
+            flex: 1;
+            align-content: start;
+        }
+
+        .grid-item {
+            aspect-ratio: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: rgba(88, 28, 135, 0.15);
+            border: 1px solid var(--glass-border);
+            border-radius: 14px;
+            font-size: clamp(0.9rem, 2.4vh, 1.4rem);
+            font-weight: 600;
+            color: var(--text-dim);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .grid-item.called {
+            background: linear-gradient(135deg, #7f1d1d, #581c87);
+            color: #ffffff;
+            border-color: #f43f5e;
+            font-weight: 800;
+            box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.4);
+        }
+
+        .grid-item.latest {
+            background: #fbbf24;
+            color: #000000;
+            border-color: #ffffff;
+            font-weight: 900;
+            box-shadow: 0 0 30px #fbbf24;
+            z-index: 5;
+            transform: scale(1.15);
+            animation: pulseGold 2s infinite alternate ease-in-out;
+        }
+
+        @keyframes pulseGold {
+            0% {
+                box-shadow: 0 0 15px #fbbf24;
+                transform: scale(1.1);
+            }
+
+            100% {
+                box-shadow: 0 0 35px #fbbf24, 0 0 55px rgba(251, 191, 36, 0.5);
+                transform: scale(1.22);
+            }
+        }
+
+        /* 提示動畫 */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: var(--bg-color);
+            border: 1px solid var(--primary-accent);
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            max-width: 400px;
+        }
+
+        /* 響應式 */
+        @media (max-width: 1200px) {
+            main {
+                padding: 20px;
+                gap: 20px;
+            }
+        }
+
+        @media (max-width: 992px) {
+            header {
+                height: auto;
+                padding: 15px 20px;
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            main {
+                flex-direction: column;
+                overflow-y: auto;
+            }
+
+            .drawing-zone {
+                flex: none;
+                height: 450px;
+                min-width: auto;
+            }
+
+            .board-zone {
+                flex: none;
+                height: auto;
+                overflow: visible;
+            }
+
+            .grid-container {
+                grid-template-columns: repeat(10, 1fr);
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <div class="logo">Bingo | F200
+            <div class="sync-badge">
+                <div class="sync-dot" id="syncStatus"></div>
+                <span id="syncText">Offline Mode</span>
+            </div>
+        </div>
+        <div class="header-controls">
+            <div class="input-group">
+                <label>最大數字:</label>
+                <input type="number" id="maxNumInput" value="75" min="10" max="100">
+            </div>
+            <div class="stats-item">已抽出: <span id="calledCount">0</span> / <span id="maxNumDisplay">75</span></div>
+            <button class="btn-ghost" onclick="confirmReset()">重置遊戲</button>
+        </div>
+    </header>
+
+    <main>
+        <!-- 抽號區 -->
+        <section class="drawing-zone">
+            <div class="number-orb" id="mainDisplay">--</div>
+
+            <div class="draw-btn-container">
+                <button class="btn-draw" id="drawBtn" onclick="draw()">DRAW</button>
+            </div>
+
+            <div class="recent-history" id="recentHistory">
+                <div class="history-dot">-</div>
+                <div class="history-dot">-</div>
+                <div class="history-dot">-</div>
+                <div class="history-dot">-</div>
+                <div class="history-dot">-</div>
+            </div>
+        </section>
+
+        <!-- 數字盤面 -->
+        <section class="board-zone">
+            <div class="board-header">
+                <div class="board-title">Number Board</div>
+            </div>
+            <div class="grid-container" id="boardGrid">
+                <!-- Grid items will be injected by JS -->
+            </div>
+        </section>
+    </main>
+
+    <div class="qr-section collapsed" id="qrToggle" onclick="this.classList.toggle('collapsed')">
+        <div id="qrcode"></div>
+        <span class="qr-label">掃碼加入遊戲</span>
+    </div>
+
+    <script>
+        let MAX_NUM = 75;
+        let called = [];
+        let isRolling = false;
+        let isMaster = true; // 是否為主控端 (預設是)
+
+        // Firebase Configuration
+        // TODO: 使用者可在此填入自己的 Firebase 配置以獲得專屬同步空間
+        const firebaseConfig = {
+            apiKey: "AIzaSyAs-DEMO-ONLY-REPLACE-ME",
+            authDomain: "bingo-demo.firebaseapp.com",
+            databaseURL: "https://bingo-demo-default-rtdb.firebaseio.com",
+            projectId: "bingo-demo",
+            storageBucket: "bingo-demo.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "1:123456789:web:abcdef12345"
+        };
+
+        let db = null;
+        try {
+            firebase.initializeApp(firebaseConfig);
+            db = firebase.database();
+        } catch (e) {
+            console.log("Firebase not configured, running in local mode.");
+        }
+
+        // DOM Elements
+        const mainDisplay = document.getElementById('mainDisplay');
+        const drawBtn = document.getElementById('drawBtn');
+        const boardGrid = document.getElementById('boardGrid');
+        const calledCountDisplay = document.getElementById('calledCount');
+        const maxNumDisplay = document.getElementById('maxNumDisplay');
+        const maxNumInput = document.getElementById('maxNumInput');
+        const recentHistory = document.getElementById('recentHistory');
+        const syncStatus = document.getElementById('syncStatus');
+        const syncText = document.getElementById('syncText');
+
+        // Setup QR Code
+        function setupQR() {
+            new QRCode(document.getElementById("qrcode"), {
+                text: window.location.href,
+                width: 120,
+                height: 120,
+                colorDark: "#000000",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+        }
+
+        // Initialize Pool
+        function initPool() {
+            // Load saved state
+            const savedMax = localStorage.getItem('bingo_max_num');
+            if (savedMax) {
+                MAX_NUM = parseInt(savedMax);
+                maxNumInput.value = MAX_NUM;
+            } else {
+                MAX_NUM = parseInt(maxNumInput.value) || 75;
+            }
+
+            pool = Array.from({ length: MAX_NUM }, (_, i) => i + 1);
+            called = JSON.parse(localStorage.getItem('bingo_called') || '[]');
+
+            // Remove called numbers from pool
+            called.forEach(num => {
+                const idx = pool.indexOf(num);
+                if (idx > -1) pool.splice(idx, 1);
+            });
+
+            maxNumDisplay.innerText = MAX_NUM;
+            renderGrid();
+            updateStats();
+            renderRecentHistory();
+
+            if (called.length > 0) {
+                mainDisplay.innerText = called[0];
+                mainDisplay.classList.add('active');
+            } else {
+                mainDisplay.innerText = "--";
+                mainDisplay.classList.remove('active');
+            }
+
+            // Bind Firebase listeners if available
+            if (db) {
+                db.ref('.info/connected').on('value', (snap) => {
+                    if (snap.val() === true) {
+                        syncStatus.classList.add('online');
+                        syncText.innerText = "Real-time Sync ON";
+                    } else {
+                        syncStatus.classList.remove('online');
+                        syncText.innerText = "Syncing...";
+                    }
+                });
+
+                // Listen for changes from other masters
+                db.ref('bingo/state').on('value', (snapshot) => {
+                    const data = snapshot.val();
+                    if (data && !isRolling) {
+                        // 如果雲端數據較新，且目前沒有在滾動，則同步本地
+                        if (JSON.stringify(data.called) !== JSON.stringify(called)) {
+                            called = data.called;
+                            localStorage.setItem('bingo_called', JSON.stringify(called));
+                            MAX_NUM = data.maxNum || 75;
+                            maxNumInput.value = MAX_NUM;
+
+                            // 更新 Pool
+                            pool = Array.from({ length: MAX_NUM }, (_, i) => i + 1);
+                            called.forEach(num => {
+                                const idx = pool.indexOf(num);
+                                if (idx > -1) pool.splice(idx, 1);
+                            });
+
+                            renderGrid();
+                            updateStats();
+                            renderRecentHistory();
+
+                            if (called.length > 0) {
+                                mainDisplay.innerText = called[0];
+                                mainDisplay.classList.add('active');
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        // Handle Max Num Change
+        maxNumInput.addEventListener('change', () => {
+            const val = parseInt(maxNumInput.value);
+            if (val >= 10 && val <= 100) {
+                if (called.length > 0) {
+                    if (confirm("更改最大數字將會重置目前進度，確定要繼續嗎？")) {
+                        MAX_NUM = val;
+                        localStorage.setItem('bingo_max_num', MAX_NUM);
+                        executeReset();
+                    } else {
+                        maxNumInput.value = MAX_NUM;
+                    }
+                } else {
+                    MAX_NUM = val;
+                    localStorage.setItem('bingo_max_num', MAX_NUM);
+                    initPool();
+                }
+            }
+        });
+
+        // Render Grid
+        function renderGrid() {
+            boardGrid.innerHTML = '';
+            // 固定使用 10 欄，確保對稱與節省空間
+            const cols = 10;
+            boardGrid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+
+            for (let i = 1; i <= MAX_NUM; i++) {
+                const item = document.createElement('div');
+                item.className = 'grid-item';
+                item.id = `num-${i}`;
+                item.innerText = i;
+
+                if (called.includes(i)) {
+                    item.classList.add('called');
+                    if (i === called[0]) item.classList.add('latest');
+                }
+
+                boardGrid.appendChild(item);
+            }
+        }
+
+        function updateStats() {
+            calledCountDisplay.innerText = called.length;
+            if (called.length >= MAX_NUM) {
+                drawBtn.disabled = true;
+                drawBtn.innerText = "FINISH";
+            } else {
+                drawBtn.disabled = false;
+                drawBtn.innerText = "DRAW";
+            }
+        }
+
+        function renderRecentHistory() {
+            const dots = recentHistory.querySelectorAll('.history-dot');
+            const historyData = called.slice(1, 6);
+
+            dots.forEach((dot, i) => {
+                if (historyData[i]) {
+                    dot.innerText = historyData[i];
+                    dot.style.opacity = 1;
+                    dot.style.borderColor = 'var(--primary-accent)';
+                } else {
+                    dot.innerText = '-';
+                    dot.style.opacity = 0.3;
+                    dot.style.borderColor = 'var(--glass-border)';
+                }
+            });
+        }
+
+        function draw() {
+            if (isRolling || pool.length === 0) return;
+
+            isRolling = true;
+            drawBtn.disabled = true;
+            mainDisplay.classList.remove('active');
+
+            const prevLatest = document.querySelector('.grid-item.latest');
+            if (prevLatest) prevLatest.classList.remove('latest');
+
+            let rolls = 0;
+            const rollInterval = setInterval(() => {
+                const tempVal = pool[Math.floor(Math.random() * pool.length)];
+                mainDisplay.innerText = tempVal;
+                rolls++;
+
+                if (rolls > 20) {
+                    clearInterval(rollInterval);
+                    finalizeDraw();
+                }
+            }, 60);
+        }
+
+        function finalizeDraw() {
+            const idx = Math.floor(Math.random() * pool.length);
+            const result = pool.splice(idx, 1)[0];
+            called.unshift(result);
+            localStorage.setItem('bingo_called', JSON.stringify(called));
+
+            // Sync to Firebase
+            if (db) {
+                db.ref('bingo/state').set({
+                    called: called,
+                    maxNum: MAX_NUM,
+                    lastUpdate: Date.now()
+                });
+            }
+
+            mainDisplay.innerText = result;
+            mainDisplay.classList.add('active');
+
+            const gridItem = document.getElementById(`num-${result}`);
+            if (gridItem) {
+                gridItem.classList.add('called', 'latest');
+                gridItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+
+            updateStats();
+            renderRecentHistory();
+            triggerVictory();
+
+            isRolling = false;
+            if (pool.length > 0) drawBtn.disabled = false;
+        }
+
+        function triggerVictory() {
+            const duration = 2000;
+            const animationEnd = Date.now() + duration;
+            const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
+
+            function randomInRange(min, max) {
+                return Math.random() * (max - min) + min;
+            }
+
+            const interval = setInterval(function () {
+                const timeLeft = animationEnd - Date.now();
+                if (timeLeft <= 0) return clearInterval(interval);
+
+                const particleCount = 50 * (timeLeft / duration);
+                confetti(Object.assign({}, defaults, {
+                    particleCount,
+                    origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 }
+                }));
+                confetti(Object.assign({}, defaults, {
+                    particleCount,
+                    origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 }
+                }));
+            }, 250);
+        }
+
+        // Reset Logic
+        function confirmReset() {
+            if (confirm("確定要重置遊戲嗎？")) {
+                executeReset();
+            }
+        }
+
+        function executeReset() {
+            localStorage.removeItem('bingo_called');
+            called = [];
+            mainDisplay.innerText = "--";
+            mainDisplay.classList.remove('active');
+
+            if (db) {
+                db.ref('bingo/state').set({
+                    called: [],
+                    maxNum: MAX_NUM,
+                    lastUpdate: Date.now()
+                });
+            }
+
+            initPool();
+        }
+
+        // Keyboard Support
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' && !isRolling && pool.length > 0) {
+                draw();
+            }
+        });
+
+        // Start
+        initPool();
+        setupQR();
+
+    </script>
+</body>
+
+</html>
