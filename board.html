@@ -566,8 +566,19 @@
             }
 
             .board-zone {
-                display: none;
-                /* Hide number board on mobile viewer */
+                flex: none;
+                height: auto;
+                overflow: visible;
+            }
+
+            .grid-container {
+                grid-template-columns: repeat(10, 1fr);
+                gap: 4px;
+            }
+
+            .grid-item {
+                font-size: 0.7rem;
+                border-radius: 8px;
             }
 
             .recent-history {
