@@ -937,6 +937,12 @@
                 if (!data) return;
 
                 if (!isRolling) {
+                    // 同步 Bingo Count (獨立於號碼變動，實現即時同步)
+                    if (data.bingoCount !== undefined && data.bingoCount !== bingoCount) {
+                        bingoCount = data.bingoCount;
+                        updateBingoUI();
+                    }
+
                     const cloudCalled = data.called || [];
                     if (JSON.stringify(cloudCalled) !== JSON.stringify(called)) {
                         // 如果雲端號碼變多，觸發煙花 (且不是第一次載入)
@@ -950,12 +956,6 @@
                         if (data.maxNum && data.maxNum !== MAX_NUM) {
                             MAX_NUM = data.maxNum;
                             pool = Array.from({ length: MAX_NUM }, (_, i) => i + 1);
-                        }
-
-                        // 同步 Bingo Count
-                        if (data.bingoCount !== undefined && data.bingoCount !== bingoCount) {
-                            bingoCount = data.bingoCount;
-                            updateBingoUI();
                         }
 
                         called.forEach(num => {
