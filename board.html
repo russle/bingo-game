@@ -566,13 +566,13 @@
             }
 
             .board-zone {
-                flex: none;
-                height: auto;
-                overflow: visible;
+                display: none;
+                /* Hide number board on mobile viewer */
             }
 
-            .grid-container {
-                grid-template-columns: repeat(10, 1fr);
+            .recent-history {
+                position: static;
+                margin-top: 20px;
             }
         }
 
