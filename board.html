@@ -625,13 +625,9 @@
             console.log("Firebase not configured, running in local mode.");
         }
 
-        // DOM Elements
+        // DOM Elements (Viewer mode - limited elements)
         const mainDisplay = document.getElementById('mainDisplay');
-        const drawBtn = document.getElementById('drawBtn');
         const boardGrid = document.getElementById('boardGrid');
-        const calledCountDisplay = document.getElementById('calledCount');
-        const maxNumDisplay = document.getElementById('maxNumDisplay');
-        const maxNumInput = document.getElementById('maxNumInput');
         const recentHistory = document.getElementById('recentHistory');
         const syncStatus = document.getElementById('syncStatus');
         const syncText = document.getElementById('syncText');
@@ -759,7 +755,7 @@
                         // 同步 Max Num
                         if (data.maxNum && data.maxNum !== MAX_NUM) {
                             MAX_NUM = data.maxNum;
-                            maxNumInput.value = MAX_NUM;
+                            // maxNumInput doesn't exist in viewer mode
                             pool = Array.from({ length: MAX_NUM }, (_, i) => i + 1);
                         } else if (pool.length === 0 && called.length === 0) {
                             // 若 pool 為空且無 called（重置狀態），重建 pool
