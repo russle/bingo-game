@@ -167,19 +167,28 @@
         }
 
         header {
-            height: 80px;
+            min-height: 100px;
             display: flex;
-            justify-content: space-between;
+            flex-direction: column;
+            justify-content: center;
             align-items: center;
-            padding: 0 40px;
+            padding: 20px 40px;
             background: rgba(0, 0, 0, 0.4);
             backdrop-filter: blur(15px);
             border-bottom: 1px solid var(--glass-border);
             z-index: 100;
+            gap: 10px;
+        }
+
+        .logo-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
         }
 
         .logo {
-            font-size: 1.8rem;
+            font-size: 2rem;
             font-weight: 900;
             letter-spacing: -1px;
             background: linear-gradient(to right, #fbbf24, #db2777, #7f1d1d);
@@ -188,6 +197,14 @@
             -webkit-text-fill-color: transparent;
             text-transform: uppercase;
             filter: drop-shadow(0 0 10px rgba(251, 191, 36, 0.4));
+            margin-bottom: 5px;
+        }
+
+        .header-status-row {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
         }
 
         .header-controls {
@@ -272,21 +289,28 @@
             display: flex;
             align-items: center;
             gap: 12px;
-            font-size: 1rem;
+            font-size: 1.1rem;
             color: var(--text-dim);
-            background: rgba(219, 39, 119, 0.15);
-            padding: 4px 14px;
-            border-radius: 12px;
-            border: 1px solid rgba(219, 39, 119, 0.3);
-            margin-right: 15px;
+            background: rgba(219, 39, 119, 0.25);
+            padding: 8px 30px;
+            border-radius: 50px;
+            border: 1px solid rgba(219, 39, 119, 0.5);
+            box-shadow: 0 0 20px rgba(219, 39, 119, 0.2);
         }
 
         .bingo-stats span {
-            color: var(--secondary-accent);
-            font-weight: 800;
+            color: var(--text-main);
+            font-weight: 900;
             font-family: 'JetBrains Mono', monospace;
+            font-size: 1.5rem;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+        }
+
+        .viewer-tag {
             font-size: 1.2rem;
-            text-shadow: 0 0 10px rgba(219, 39, 119, 0.4);
+            color: var(--secondary-accent);
+            font-weight: 600;
+            opacity: 0.9;
         }
 
         main {
@@ -652,13 +676,21 @@
 <body>
 
     <header>
-        <div class="logo">Bingo | F200 (觀眾模式)
-            <div class="sync-badge">
-                <div class="sync-dot" id="syncStatus"></div>
-                <span id="syncText">Connecting...</span>
-            </div>
-            <div class="bingo-stats">
-                賓果人數: <span id="bingoCount">0</span>
+        <div class="logo-container">
+            <div class="logo">Bingo | F200</div>
+
+            <div class="header-status-row">
+                <!-- Sync placed FIRST (Top) -->
+                <div class="sync-badge">
+                    <div class="sync-dot" id="syncStatus"></div>
+                    <span id="syncText">Connecting...</span>
+                </div>
+
+                <!-- Bingo Stats with Viewer Tag NEXT -->
+                <div class="bingo-stats">
+                    賓果人數: <span id="bingoCount">0</span>
+                    <div class="viewer-tag">(觀眾模式)</div>
+                </div>
             </div>
         </div>
     </header>
