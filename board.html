@@ -3,8 +3,11 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bingo 遊戲</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Bingo 遊戲 | 觀眾端</title>
     <link
         href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;900&family=JetBrains+Mono:wght@700&display=swap"
         rel="stylesheet">
@@ -42,10 +45,12 @@
             background: radial-gradient(circle at center, #581c87 0%, #0b0114 100%);
             color: var(--text-main);
             font-family: 'Outfit', sans-serif;
-            height: 100vh;
+            min-height: 100vh;
+            min-height: -webkit-fill-available;
             display: flex;
             flex-direction: column;
-            overflow: hidden;
+            overflow-x: hidden;
+            overflow-y: auto;
             position: relative;
         }
 
@@ -782,6 +787,17 @@
 
         // Keyboard support removed
 
+        // LocalStorage Cleanup for versioning
+        const BINGO_VERSION = '1.1';
+        function checkVersion() {
+            const savedVersion = localStorage.getItem('bingo_app_version');
+            if (savedVersion !== BINGO_VERSION) {
+                console.log("New version detected, clearing storage...");
+                localStorage.removeItem('bingo_called');
+                localStorage.setItem('bingo_app_version', BINGO_VERSION);
+            }
+        }
+
         // Setup Firebase Listeners (Run once)
         function setupFirebaseListeners() {
             if (!db) return;
@@ -790,41 +806,38 @@
                 if (snap.val() === true) {
                     syncStatus.classList.add('online');
                     syncText.innerText = "Real-time Sync ON";
+                    console.log("Firebase Connected");
                 } else {
                     syncStatus.classList.remove('online');
                     syncText.innerText = "Syncing...";
+                    console.log("Firebase Disconnected/Syncing...");
+                }
+            });
+
+            // Listen for visibility changes to force reconnect on mobile wake
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible') {
+                    console.log("Visibility changed, refreshing Firebase connection...");
+                    firebase.database().goOffline();
+                    firebase.database().goOnline();
                 }
             });
 
             // Listen for changes from other masters
             db.ref('bingo/state').on('value', (snapshot) => {
                 const data = snapshot.val();
-
-                // 如果是空資料（例如剛重置），也要同步
-                if (!data) {
-                    return;
-                }
+                if (!data) return;
 
                 if (!isRolling) {
-                    // 同步雲端資料到本地
                     if (JSON.stringify(data.called) !== JSON.stringify(called)) {
-                        console.log("Syncing from cloud:", data.called);
-                        // 確保 called 是陣列 (剛重置時可能是 undefined)
                         called = data.called || [];
-
                         localStorage.setItem('bingo_called', JSON.stringify(called));
 
-                        // 同步 Max Num
                         if (data.maxNum && data.maxNum !== MAX_NUM) {
                             MAX_NUM = data.maxNum;
-                            // maxNumInput doesn't exist in viewer mode
-                            pool = Array.from({ length: MAX_NUM }, (_, i) => i + 1);
-                        } else if (pool.length === 0 && called.length === 0) {
-                            // 若 pool 為空且無 called（重置狀態），重建 pool
                             pool = Array.from({ length: MAX_NUM }, (_, i) => i + 1);
                         }
 
-                        // Remove called numbers from pool
                         called.forEach(num => {
                             const idx = pool.indexOf(num);
                             if (idx > -1) pool.splice(idx, 1);
@@ -837,7 +850,7 @@
                             mainDisplay.innerText = called[0];
                             mainDisplay.classList.add('active');
                         } else {
-                            mainDisplay.innerText = "--";
+                            mainDisplay.innerText = "開始";
                             mainDisplay.classList.remove('active');
                         }
                     }
@@ -846,6 +859,7 @@
         }
 
         // Start
+        checkVersion();
         initPool();
         setupFirebaseListeners();
 
