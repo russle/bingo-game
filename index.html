@@ -43,25 +43,36 @@
             background: radial-gradient(circle at center, #581c87 0%, #0b0114 100%);
             color: var(--text-main);
             font-family: 'Outfit', sans-serif;
-            height: 100vh;
+            min-height: 100vh;
             display: flex;
             flex-direction: column;
-            overflow: hidden;
+            overflow-y: auto;
             position: relative;
         }
 
         /* Sync Status Badge */
+        /* Bottom Right Controls Container */
+        .bottom-right-controls {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            align-items: flex-end;
+            gap: 10px;
+            z-index: 200;
+        }
+
         .sync-badge {
             display: flex;
             align-items: center;
             gap: 6px;
             font-size: 0.75rem;
             color: var(--text-dim);
-            background: rgba(0, 0, 0, 0.4);
-            padding: 4px 10px;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 8px 12px;
             border-radius: 20px;
             border: 1px solid var(--glass-border);
-            margin-left: 10px;
+            backdrop-filter: blur(10px);
         }
 
         .sync-dot {
@@ -78,9 +89,6 @@
 
         /* QR Code Section */
         .qr-section {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
             background: var(--glass-bg);
             border: 1px solid var(--glass-border);
             padding: 15px;
@@ -89,7 +97,6 @@
             flex-direction: column;
             align-items: center;
             gap: 10px;
-            z-index: 200;
             box-shadow: var(--card-shadow);
             transform: scale(0.9);
             transition: all 0.3s ease;
@@ -175,7 +182,7 @@
         }
 
         .logo {
-            font-size: 1.8rem;
+            font-size: 2.5rem;
             font-weight: 900;
             letter-spacing: -1px;
             background: linear-gradient(to right, #fbbf24, #db2777, #7f1d1d);
@@ -542,7 +549,7 @@
 
             main {
                 flex-direction: column;
-                overflow-y: auto;
+                overflow-y: visible;
             }
 
             .drawing-zone {
@@ -567,12 +574,7 @@
 <body>
 
     <header>
-        <div class="logo">Bingo | F200
-            <div class="sync-badge">
-                <div class="sync-dot" id="syncStatus"></div>
-                <span id="syncText">Offline Mode</span>
-            </div>
-        </div>
+        <div class="logo">Bingo | F200</div>
         <div class="header-controls">
             <div class="input-group">
                 <label>最大數字:</label>
@@ -612,9 +614,15 @@
         </section>
     </main>
 
-    <div class="qr-section collapsed" id="qrToggle" onclick="this.classList.toggle('collapsed')">
-        <div id="qrcode"></div>
-        <span class="qr-label">掃碼加入遊戲</span>
+    <div class="bottom-right-controls">
+        <div class="sync-badge">
+            <div class="sync-dot" id="syncStatus"></div>
+            <span id="syncText">Offline Mode</span>
+        </div>
+        <div class="qr-section collapsed" id="qrToggle" onclick="this.classList.toggle('collapsed')">
+            <div id="qrcode"></div>
+            <span class="qr-label">掃碼加入遊戲</span>
+        </div>
     </div>
 
     <script>
@@ -702,7 +710,7 @@
                 mainDisplay.innerText = called[0];
                 mainDisplay.classList.add('active');
             } else {
-                mainDisplay.innerText = "開始";
+                mainDisplay.innerText = "Ready?";
                 mainDisplay.classList.remove('active');
             }
 
