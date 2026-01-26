@@ -904,7 +904,7 @@
         // Keyboard support removed
 
         // LocalStorage Cleanup for versioning
-        const BINGO_VERSION = '1.1';
+        const BINGO_VERSION = '1.2';
         function checkVersion() {
             const savedVersion = localStorage.getItem('bingo_app_version');
             if (savedVersion !== BINGO_VERSION) {
@@ -913,6 +913,8 @@
                 localStorage.setItem('bingo_app_version', BINGO_VERSION);
             }
         }
+
+        let lastSyncTime = 0; // Track the last update timestamp from Firebase
 
         // Setup Firebase Listeners (Run once)
         function setupFirebaseListeners() {
@@ -951,13 +953,15 @@
                 }
 
                 const cloudCalled = data.called || [];
+                const cloudLastUpdate = data.lastUpdate || 0;
 
-                // Detection for new numbers
+                // 檢查是否為有效的更新（時間戳變更且號碼陣列不為空）
+                const isNewUpdate = cloudLastUpdate > lastSyncTime;
+                const hasNumbers = cloudCalled.length > 0;
+
+                // Sync number state
                 if (JSON.stringify(cloudCalled) !== JSON.stringify(called)) {
-                    const isInitialLoad = called.length === 0;
-                    const isNewNumberAdded = cloudCalled.length > called.length;
-
-                    // Update local state
+                    console.log("Syncing numbers from cloud...");
                     called = cloudCalled;
                     localStorage.setItem('bingo_called', JSON.stringify(called));
 
@@ -966,7 +970,6 @@
                         pool = Array.from({ length: MAX_NUM }, (_, i) => i + 1);
                     }
 
-                    // Re-calculate pool
                     pool = Array.from({ length: MAX_NUM }, (_, i) => i + 1);
                     called.forEach(num => {
                         const idx = pool.indexOf(num);
@@ -983,13 +986,20 @@
                         mainDisplay.innerText = "開始";
                         mainDisplay.classList.remove('active');
                     }
-
-                    // Trigger firework if a new number was added (and not the first time viewing/loading)
-                    if (isNewNumberAdded && !isInitialLoad) {
-                        console.log("New number detected, triggering fireworks!");
-                        triggerVictory();
-                    }
                 }
+
+                // 「切換中獎號碼」時觸發煙花的核心邏輯
+                // 判斷條件：
+                // 1. 時間戳有更新 (isNewUpdate)
+                // 2. 不是頁面剛加載的第一次同步 (lastSyncTime > 0)
+                // 3. 目前確實有抽出的號碼 (hasNumbers)
+                if (isNewUpdate && lastSyncTime > 0 && hasNumbers) {
+                    console.log("New lottery event detected via timestamp, triggering fireworks!");
+                    triggerVictory();
+                }
+
+                // 更新本地記錄的時間戳，為下次同步做準備
+                lastSyncTime = cloudLastUpdate;
             });
         }
 
