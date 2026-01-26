@@ -434,6 +434,18 @@
             box-shadow: none;
         }
 
+        /* 歷史標籤 */
+        .history-label {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-top: 25px;
+            margin-bottom: 8px;
+            opacity: 0.8;
+        }
+
         /* 歷史橫條 */
         .recent-history {
             position: static;
@@ -641,6 +653,7 @@
                 <button class="btn-draw" id="drawBtn" onclick="draw()">DRAW</button>
             </div>
 
+            <div class="history-label">最近 5 次抽號</div>
             <div class="recent-history" id="recentHistory">
                 <div class="history-dot">-</div>
                 <div class="history-dot">-</div>
