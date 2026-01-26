@@ -939,48 +939,55 @@
                 }
             });
 
-            // Listen for changes from other masters
+            // Listen for changes from the control center
             db.ref('bingo/state').on('value', (snapshot) => {
                 const data = snapshot.val();
                 if (!data) return;
 
-                if (!isRolling) {
-                    // 同步 Bingo Count (獨立於號碼變動，實現即時同步)
-                    if (data.bingoCount !== undefined && data.bingoCount !== bingoCount) {
-                        bingoCount = data.bingoCount;
-                        updateBingoUI();
+                // Sync Bingo Count (Independent of number updates)
+                if (data.bingoCount !== undefined && data.bingoCount !== bingoCount) {
+                    bingoCount = data.bingoCount;
+                    updateBingoUI();
+                }
+
+                const cloudCalled = data.called || [];
+
+                // Detection for new numbers
+                if (JSON.stringify(cloudCalled) !== JSON.stringify(called)) {
+                    const isInitialLoad = called.length === 0;
+                    const isNewNumberAdded = cloudCalled.length > called.length;
+
+                    // Update local state
+                    called = cloudCalled;
+                    localStorage.setItem('bingo_called', JSON.stringify(called));
+
+                    if (data.maxNum && data.maxNum !== MAX_NUM) {
+                        MAX_NUM = data.maxNum;
+                        pool = Array.from({ length: MAX_NUM }, (_, i) => i + 1);
                     }
 
-                    const cloudCalled = data.called || [];
-                    if (JSON.stringify(cloudCalled) !== JSON.stringify(called)) {
-                        // 如果雲端號碼變多，觸發煙花 (且不是第一次載入)
-                        if (cloudCalled.length > called.length && called.length > 0) {
-                            triggerVictory();
-                        }
+                    // Re-calculate pool
+                    pool = Array.from({ length: MAX_NUM }, (_, i) => i + 1);
+                    called.forEach(num => {
+                        const idx = pool.indexOf(num);
+                        if (idx > -1) pool.splice(idx, 1);
+                    });
 
-                        called = cloudCalled;
-                        localStorage.setItem('bingo_called', JSON.stringify(called));
+                    renderGrid();
+                    renderRecentHistory();
 
-                        if (data.maxNum && data.maxNum !== MAX_NUM) {
-                            MAX_NUM = data.maxNum;
-                            pool = Array.from({ length: MAX_NUM }, (_, i) => i + 1);
-                        }
+                    if (called.length > 0) {
+                        mainDisplay.innerText = called[0];
+                        mainDisplay.classList.add('active');
+                    } else {
+                        mainDisplay.innerText = "開始";
+                        mainDisplay.classList.remove('active');
+                    }
 
-                        called.forEach(num => {
-                            const idx = pool.indexOf(num);
-                            if (idx > -1) pool.splice(idx, 1);
-                        });
-
-                        renderGrid();
-                        renderRecentHistory();
-
-                        if (called.length > 0) {
-                            mainDisplay.innerText = called[0];
-                            mainDisplay.classList.add('active');
-                        } else {
-                            mainDisplay.innerText = "開始";
-                            mainDisplay.classList.remove('active');
-                        }
+                    // Trigger firework if a new number was added (and not the first time viewing/loading)
+                    if (isNewNumberAdded && !isInitialLoad) {
+                        console.log("New number detected, triggering fireworks!");
+                        triggerVictory();
                     }
                 }
             });
