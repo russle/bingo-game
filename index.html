@@ -678,6 +678,19 @@
         let bingoCount = 0;
         let isRolling = false;
         let isMaster = true; // 是否為主控端 (預設是)
+        let lastSyncTime = 0; // 追蹤來自 Firebase 的最後更新時間戳
+
+        // LocalStorage Cleanup for versioning
+        const BINGO_VERSION = '1.2';
+        function checkVersion() {
+            const savedVersion = localStorage.getItem('bingo_app_version');
+            if (savedVersion !== BINGO_VERSION) {
+                console.log("New version detected, clearing storage...");
+                localStorage.removeItem('bingo_called');
+                localStorage.setItem('bingo_app_version', BINGO_VERSION);
+            }
+        }
+        checkVersion();
 
         // Firebase Configuration
         const firebaseConfig = {
@@ -993,11 +1006,17 @@
                 }
 
                 if (!isRolling) {
+                    const cloudCalled = data.called || [];
+                    const cloudLastUpdate = data.lastUpdate || 0;
+
+                    // 偵測是否為新的同步更新
+                    const isNewUpdate = cloudLastUpdate > lastSyncTime;
+                    const hasNumbers = cloudCalled.length > 0;
+
                     // 同步雲端資料到本地
-                    if (JSON.stringify(data.called) !== JSON.stringify(called)) {
-                        console.log("Syncing from cloud:", data.called);
-                        // 確保 called 是陣列 (剛重置時可能是 undefined)
-                        called = data.called || [];
+                    if (JSON.stringify(cloudCalled) !== JSON.stringify(called)) {
+                        console.log("Syncing from cloud:", cloudCalled);
+                        called = cloudCalled;
 
                         localStorage.setItem('bingo_called', JSON.stringify(called));
 
@@ -1007,7 +1026,6 @@
                             maxNumInput.value = MAX_NUM;
                             pool = Array.from({ length: MAX_NUM }, (_, i) => i + 1);
                         } else if (pool.length === 0 && called.length === 0) {
-                            // 若 pool 為空且無 called（重置狀態），重建 pool
                             pool = Array.from({ length: MAX_NUM }, (_, i) => i + 1);
                         }
 
@@ -1035,6 +1053,16 @@
                             mainDisplay.classList.remove('active');
                         }
                     }
+
+                    // 「被動抽號同步」時觸發煙花的核心邏輯
+                    // 只有當不是本地發起的 isRolling 且 cloudLastUpdate 有更新時觸發
+                    if (isNewUpdate && lastSyncTime > 0 && hasNumbers) {
+                        console.log("External draw detected, triggering fireworks!");
+                        triggerVictory();
+                    }
+
+                    // 更新本地記錄的時間戳
+                    lastSyncTime = cloudLastUpdate;
                 }
             });
         }
