@@ -619,6 +619,77 @@
 
             .grid-container {
                 grid-template-columns: repeat(10, 1fr);
+                gap: 6px;
+            }
+
+            .number-orb {
+                width: clamp(160px, 40vh, 260px);
+                height: clamp(160px, 40vh, 260px);
+                font-size: clamp(4rem, 10vh, 7rem);
+            }
+        }
+
+        /* 手機端優化 (手機垂直握持) */
+        @media (max-width: 576px) {
+            header {
+                padding: 10px 15px;
+            }
+
+            .logo {
+                font-size: 1.8rem;
+            }
+
+            .header-controls {
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 10px;
+            }
+
+            .input-group,
+            .stats-item,
+            .bingo-counter {
+                padding: 4px 10px;
+                font-size: 0.8rem;
+            }
+
+            .number-orb {
+                width: 180px;
+                height: 180px;
+                font-size: 4.5rem;
+                margin-top: 20px;
+            }
+
+            .btn-draw {
+                padding: 14px 40px;
+                font-size: 1.4rem;
+            }
+
+            .recent-history {
+                gap: 8px;
+                padding: 8px 12px;
+            }
+
+            .history-dot {
+                width: 36px;
+                height: 36px;
+                font-size: 0.9rem;
+            }
+
+            .board-zone {
+                padding: 15px;
+            }
+
+            .grid-container {
+                gap: 4px;
+            }
+
+            .grid-item {
+                font-size: 0.8rem;
+                border-radius: 8px;
+            }
+
+            .history-label {
+                margin-top: 15px;
             }
         }
     </style>
