@@ -691,6 +691,10 @@
             .history-label {
                 margin-top: 15px;
             }
+
+            #resetBtn {
+                display: none;
+            }
         }
     </style>
 </head>
@@ -711,7 +715,7 @@
                 <span class="bingo-val" id="bingoCount">0</span>
                 <button class="btn-mini" onclick="changeBingoCount(1)">+</button>
             </div>
-            <button class="btn-ghost" onclick="confirmReset()">重置遊戲</button>
+            <button class="btn-ghost" id="resetBtn" onclick="confirmReset()">重置遊戲</button>
         </div>
     </header>
 
