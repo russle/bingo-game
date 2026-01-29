@@ -1117,11 +1117,6 @@
                             pool = Array.from({ length: MAX_NUM }, (_, i) => i + 1);
                         }
 
-                        // 同步 Bingo Count
-                        if (data.bingoCount !== undefined && data.bingoCount !== bingoCount) {
-                            bingoCount = data.bingoCount;
-                            updateBingoUI();
-                        }
 
                         // Remove called numbers from pool
                         called.forEach(num => {
@@ -1151,6 +1146,13 @@
 
                     // 更新本地記錄的時間戳
                     lastSyncTime = cloudLastUpdate;
+                }
+
+                // 同步 Bingo Count (獨立於抽號同步，確保手機修改時電腦端能即時更新)
+                if (data.bingoCount !== undefined && data.bingoCount !== bingoCount) {
+                    console.log("Syncing bingo count from cloud:", data.bingoCount);
+                    bingoCount = data.bingoCount;
+                    updateBingoUI();
                 }
             });
         }
