@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bingo Game</title>
+    <title>Bingo Game!</title>
     <link
         href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;900&family=JetBrains+Mono:wght@700&display=swap"
         rel="stylesheet">
@@ -696,13 +696,93 @@
                 display: none;
             }
         }
+
+        /* Config Modal Styles */
+        .config-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(10px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+
+        .config-content {
+            background: var(--glass-bg);
+            border: 1px solid var(--primary-accent);
+            padding: 30px;
+            border-radius: 24px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: var(--card-shadow);
+        }
+
+        .config-content h2 {
+            margin-top: 0;
+            color: var(--primary-accent);
+            text-align: center;
+        }
+
+        .config-field {
+            margin-bottom: 15px;
+        }
+
+        .config-field label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+            color: var(--text-dim);
+        }
+
+        .config-field input {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--glass-border);
+            border-radius: 8px;
+            padding: 10px;
+            color: white;
+            font-family: inherit;
+        }
+
+        .config-actions {
+            display: flex;
+            gap: 15px;
+            margin-top: 25px;
+        }
+
+        .btn-primary {
+            flex: 1;
+            background: linear-gradient(135deg, #fbbf24, #d97706);
+            border: none;
+            color: black;
+            padding: 12px;
+            border-radius: 10px;
+            font-weight: 800;
+            cursor: pointer;
+            text-transform: uppercase;
+        }
+
+        .btn-secondary {
+            flex: 1;
+            background: transparent;
+            border: 1px solid var(--glass-border);
+            color: white;
+            padding: 12px;
+            border-radius: 10px;
+            cursor: pointer;
+        }
     </style>
 </head>
 
 <body>
 
     <header>
-        <div class="logo">Bingo | F200</div>
+        <div class="logo">Bingo Game!</div>
         <div class="header-controls">
             <div class="input-group">
                 <label>最大數字:</label>
@@ -758,177 +838,212 @@
             <div id="qrcode"></div>
             <span class="qr-label">掃碼加入遊戲</span>
         </div>
+        <button class="btn-ghost" style="height: 40px; border-radius: 20px;" onclick="showConfig()">⚙️ 設定</button>
+    </div>
+
+    <!-- Configuration Modal -->
+    <div id="configModal" class="config-modal">
+        <div class="config-content">
+            <h2>Firebase 配置設定</h2>
+            <p style="font-size: 0.8rem; color: var(--text-dim); margin-bottom: 20px;">請輸入您的 Firebase Web
+                應用程式配置。切換配置後網頁將自動重新整理。</p>
+
+            <div class="config-field">
+                <label>API Key</label>
+                <input type="text" id="cfg_apiKey" placeholder="AIzaSy...">
+            </div>
+            <div class="config-field">
+                <label>Auth Domain</label>
+                <input type="text" id="cfg_authDomain" placeholder="your-app.firebaseapp.com">
+            </div>
+            <div class="config-field">
+                <label>Database URL</label>
+                <input type="text" id="cfg_databaseURL" placeholder="https://your-app-default-rtdb.firebaseio.com">
+            </div>
+            <div class="config-field">
+                <label>Project ID</label>
+                <input type="text" id="cfg_projectId" placeholder="your-app">
+            </div>
+            <div class="config-field">
+                <label>Storage Bucket</label>
+                <input type="text" id="cfg_storageBucket" placeholder="your-app.firebasestorage.app">
+            </div>
+            <div class="config-field">
+                <label>Messaging Sender ID</label>
+                <input type="text" id="cfg_messagingSenderId" placeholder="123456789">
+            </div>
+            <div class="config-field">
+                <label>App ID</label>
+                <input type="text" id="cfg_appId" placeholder="1:123456789:web:abcdef">
+            </div>
+
+            <div class="config-actions">
+                <button class="btn-secondary" onclick="hideConfig()">取消 (本地模式)</button>
+                <button class="btn-primary" onclick="saveConfig()">儲存配置</button>
+            </div>
+            <p style="font-size: 0.7rem; color: #6b7280; margin-top: 15px; text-align: center;">註：本地模式下，抽號結果僅儲存在此瀏覽器，QR
+                Code 同步功能將停用。</p>
+        </div>
     </div>
 
     <script>
         let MAX_NUM = 75;
+        let pool = [];
         let called = [];
         let bingoCount = 0;
         let isRolling = false;
-        let isMaster = true; // 是否為主控端 (預設是)
-        let lastSyncTime = 0; // 追蹤來自 Firebase 的最後更新時間戳
+        let isMaster = true;
+        let lastSyncTime = 0;
+        let db = null;
 
-        // LocalStorage Cleanup for versioning
         const BINGO_VERSION = '1.2';
+
         function checkVersion() {
             const savedVersion = localStorage.getItem('bingo_app_version');
             if (savedVersion !== BINGO_VERSION) {
-                console.log("New version detected, clearing storage...");
                 localStorage.removeItem('bingo_called');
                 localStorage.setItem('bingo_app_version', BINGO_VERSION);
             }
         }
-        checkVersion();
 
-        // Firebase Configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyA5hYkmkWU8xS5wgW2yxgyQa6oUv1Tk2t4",
-            authDomain: "my-bingo-2026.firebaseapp.com",
-            databaseURL: "https://my-bingo-2026-default-rtdb.asia-southeast1.firebasedatabase.app",
-            projectId: "my-bingo-2026",
-            storageBucket: "my-bingo-2026.firebasestorage.app",
-            messagingSenderId: "956278146181",
-            appId: "1:956278146181:web:bfb8e8b1208c0aea1a15ec"
-        };
-
-        let db = null;
-        try {
-            firebase.initializeApp(firebaseConfig);
-            db = firebase.database();
-
-            // 實施匿名登入以獲得寫入權限
-            firebase.auth().signInAnonymously().catch((error) => {
-                console.error("Firebase Auth Error:", error.code, error.message);
-            });
-        } catch (e) {
-            console.log("Firebase not configured, running in local mode.");
+        function getFirebaseConfig() {
+            const savedConfig = localStorage.getItem('bingo_firebase_config');
+            return savedConfig ? JSON.parse(savedConfig) : null;
         }
 
-        // DOM Elements
-        const mainDisplay = document.getElementById('mainDisplay');
-        const drawBtn = document.getElementById('drawBtn');
-        const boardGrid = document.getElementById('boardGrid');
-        const calledCountDisplay = document.getElementById('calledCount');
-        const maxNumDisplay = document.getElementById('maxNumDisplay');
-        const maxNumInput = document.getElementById('maxNumInput');
-        const recentHistory = document.getElementById('recentHistory');
-        const bingoCountDisplay = document.getElementById('bingoCount');
-        const syncStatus = document.getElementById('syncStatus');
-        const syncText = document.getElementById('syncText');
-
-        // Setup QR Code
-        function setupQR() {
-            // Generate URL for the viewer page (board.html)
-            const viewerUrl = new URL('board.html', window.location.href).href;
-
-            new QRCode(document.getElementById("qrcode"), {
-                text: viewerUrl,
-                width: 480,
-                height: 480,
-                colorDark: "#000000",
-                colorLight: "#ffffff",
-                correctLevel: QRCode.CorrectLevel.H
-            });
-        }
-
-        // Initialize Pool
-        function initPool() {
-            // Load saved state
-            const savedMax = localStorage.getItem('bingo_max_num');
-            if (savedMax) {
-                MAX_NUM = parseInt(savedMax);
+        function showConfig() {
+            const config = getFirebaseConfig();
+            if (config) {
+                document.getElementById('cfg_apiKey').value = config.apiKey || "";
+                document.getElementById('cfg_authDomain').value = config.authDomain || "";
+                document.getElementById('cfg_databaseURL').value = config.databaseURL || "";
+                document.getElementById('cfg_projectId').value = config.projectId || "";
+                document.getElementById('cfg_storageBucket').value = config.storageBucket || "";
+                document.getElementById('cfg_messagingSenderId').value = config.messagingSenderId || "";
+                document.getElementById('cfg_appId').value = config.appId || "";
             }
+            const modal = document.getElementById('configModal');
+            if (modal) modal.style.display = 'flex';
+        }
 
-            // Validate MAX_NUM (Protection against NaN/Null corruption)
+        function hideConfig() {
+            const modal = document.getElementById('configModal');
+            if (modal) modal.style.display = 'none';
+            if (!getFirebaseConfig()) {
+                sessionStorage.setItem('bingo_skip_config', 'true');
+                updateSyncStatus(false, "LOCAL MODE", "#6b7280");
+            }
+        }
+
+        function saveConfig() {
+            const config = {
+                apiKey: document.getElementById('cfg_apiKey').value.trim(),
+                authDomain: document.getElementById('cfg_authDomain').value.trim(),
+                databaseURL: document.getElementById('cfg_databaseURL').value.trim(),
+                projectId: document.getElementById('cfg_projectId').value.trim(),
+                storageBucket: document.getElementById('cfg_storageBucket').value.trim(),
+                messagingSenderId: document.getElementById('cfg_messagingSenderId').value.trim(),
+                appId: document.getElementById('cfg_appId').value.trim()
+            };
+            if (!config.apiKey || !config.databaseURL || !config.projectId) {
+                alert("請填寫必要的配置 (API Key, Database URL, Project ID)");
+                return;
+            }
+            localStorage.setItem('bingo_firebase_config', JSON.stringify(config));
+            location.reload();
+        }
+
+        function updateSyncStatus(isOnline, text, color) {
+            const dot = document.getElementById('syncStatus');
+            const label = document.getElementById('syncText');
+            if (!dot || !label) return;
+            dot.className = 'sync-dot' + (isOnline ? ' online' : '');
+            if (color && !isOnline) {
+                dot.style.background = color;
+                dot.style.boxShadow = 'none';
+            } else if (isOnline) {
+                dot.style.background = '#10b981';
+                dot.style.boxShadow = '0 0 10px #10b981';
+            } else {
+                dot.style.background = '#6b7280';
+                dot.style.boxShadow = 'none';
+            }
+            label.innerText = text;
+        }
+
+        function initPool() {
+            const savedMax = localStorage.getItem('bingo_max_num');
+            if (savedMax) MAX_NUM = parseInt(savedMax);
             if (!MAX_NUM || isNaN(MAX_NUM) || MAX_NUM < 10) {
                 MAX_NUM = 75;
                 localStorage.setItem('bingo_max_num', MAX_NUM);
             }
-
-            maxNumInput.value = MAX_NUM;
-
+            const input = document.getElementById('maxNumInput');
+            const dMax = document.getElementById('maxNumDisplay');
+            if (input) input.value = MAX_NUM;
+            if (dMax) dMax.innerText = MAX_NUM;
             pool = Array.from({ length: MAX_NUM }, (_, i) => i + 1);
             called = JSON.parse(localStorage.getItem('bingo_called') || '[]');
-
-            // Remove called numbers from pool
             called.forEach(num => {
                 const idx = pool.indexOf(num);
                 if (idx > -1) pool.splice(idx, 1);
             });
-
-            maxNumDisplay.innerText = MAX_NUM;
             renderGrid();
             updateStats();
             renderRecentHistory();
             updateBingoUI();
-
+            const mainDisp = document.getElementById('mainDisplay');
             if (called.length > 0) {
-                mainDisplay.innerText = called[0];
-                mainDisplay.classList.add('active');
+                if (mainDisp) {
+                    mainDisp.innerText = called[0];
+                    mainDisp.classList.add('active');
+                }
             } else {
-                mainDisplay.innerText = "Ready?";
-                mainDisplay.classList.remove('active');
-            }
-
-        }
-
-        // Handle Max Num Change
-        maxNumInput.addEventListener('change', () => {
-            const val = parseInt(maxNumInput.value);
-            if (val >= 10 && val <= 100) {
-                if (called.length > 0) {
-                    if (confirm("更改最大數字將會重置目前進度，確定要繼續嗎？")) {
-                        MAX_NUM = val;
-                        localStorage.setItem('bingo_max_num', MAX_NUM);
-                        executeReset();
-                    } else {
-                        maxNumInput.value = MAX_NUM;
-                    }
-                } else {
-                    MAX_NUM = val;
-                    localStorage.setItem('bingo_max_num', MAX_NUM);
-                    initPool();
+                if (mainDisp) {
+                    mainDisp.innerText = "Ready?";
+                    mainDisp.classList.remove('active');
                 }
             }
-        });
+        }
 
-        // Render Grid
         function renderGrid() {
-            boardGrid.innerHTML = '';
-            // 固定使用 10 欄，確保對稱與節省空間
-            const cols = 10;
-            boardGrid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
-
+            const grid = document.getElementById('boardGrid');
+            if (!grid) return;
+            grid.innerHTML = '';
+            grid.style.gridTemplateColumns = `repeat(10, 1fr)`;
             for (let i = 1; i <= MAX_NUM; i++) {
                 const item = document.createElement('div');
                 item.className = 'grid-item';
                 item.id = `num-${i}`;
                 item.innerText = i;
-
                 if (called.includes(i)) {
                     item.classList.add('called');
                     if (i === called[0]) item.classList.add('latest');
                 }
-
-                boardGrid.appendChild(item);
+                grid.appendChild(item);
             }
         }
 
         function updateStats() {
-            calledCountDisplay.innerText = called.length;
-            if (called.length >= MAX_NUM) {
-                drawBtn.disabled = true;
-                drawBtn.innerText = "FINISH";
-            } else {
-                drawBtn.disabled = false;
-                drawBtn.innerText = "DRAW";
+            const countLabel = document.getElementById('calledCount');
+            const btn = document.getElementById('drawBtn');
+            if (countLabel) countLabel.innerText = called.length;
+            if (btn) {
+                if (called.length >= MAX_NUM) {
+                    btn.disabled = true;
+                    btn.innerText = "FINISH";
+                } else {
+                    btn.disabled = false;
+                    btn.innerText = "DRAW";
+                }
             }
         }
 
         function renderRecentHistory() {
-            const dots = recentHistory.querySelectorAll('.history-dot');
+            const historyArea = document.getElementById('recentHistory');
+            if (!historyArea) return;
+            const dots = historyArea.querySelectorAll('.history-dot');
             const historyData = called.slice(1, 6);
-
             dots.forEach((dot, i) => {
                 if (historyData[i]) {
                     dot.innerText = historyData[i];
@@ -944,20 +1059,18 @@
 
         function draw() {
             if (isRolling || pool.length === 0) return;
-
             isRolling = true;
-            drawBtn.disabled = true;
-            mainDisplay.classList.remove('active');
-
+            const btn = document.getElementById('drawBtn');
+            const display = document.getElementById('mainDisplay');
+            if (btn) btn.disabled = true;
+            if (display) display.classList.remove('active');
             const prevLatest = document.querySelector('.grid-item.latest');
             if (prevLatest) prevLatest.classList.remove('latest');
-
             let rolls = 0;
             const rollInterval = setInterval(() => {
                 const tempVal = pool[Math.floor(Math.random() * pool.length)];
-                mainDisplay.innerText = tempVal;
+                if (display) display.innerText = tempVal;
                 rolls++;
-
                 if (rolls > 20) {
                     clearInterval(rollInterval);
                     finalizeDraw();
@@ -970,197 +1083,156 @@
             const result = pool.splice(idx, 1)[0];
             called.unshift(result);
             localStorage.setItem('bingo_called', JSON.stringify(called));
-
-            // Sync to Firebase
             if (db) {
                 db.ref('bingo/state').set({
-                    called: called,
-                    maxNum: MAX_NUM,
-                    bingoCount: bingoCount,
-                    lastUpdate: Date.now()
+                    called: called, maxNum: MAX_NUM, bingoCount: bingoCount, lastUpdate: Date.now()
                 });
             }
-
-            mainDisplay.innerText = result;
-            mainDisplay.classList.add('active');
-
+            const display = document.getElementById('mainDisplay');
+            if (display) { display.innerText = result; display.classList.add('active'); }
             const gridItem = document.getElementById(`num-${result}`);
-            if (gridItem) {
-                gridItem.classList.add('called', 'latest');
-            }
-
+            if (gridItem) gridItem.classList.add('called', 'latest');
             updateStats();
             renderRecentHistory();
             triggerVictory();
-
             isRolling = false;
-            if (pool.length > 0) drawBtn.disabled = false;
+            const btn = document.getElementById('drawBtn');
+            if (btn && pool.length > 0) btn.disabled = false;
         }
 
         function triggerVictory() {
+            if (typeof confetti !== 'function') return;
             const duration = 2000;
             const animationEnd = Date.now() + duration;
             const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 9999 };
-
-            function randomInRange(min, max) {
-                return Math.random() * (max - min) + min;
-            }
-
+            function randomInRange(min, max) { return Math.random() * (max - min) + min; }
             const interval = setInterval(function () {
                 const timeLeft = animationEnd - Date.now();
                 if (timeLeft <= 0) return clearInterval(interval);
-
                 const particleCount = 50 * (timeLeft / duration);
-                confetti(Object.assign({}, defaults, {
-                    particleCount,
-                    origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 }
-                }));
-                confetti(Object.assign({}, defaults, {
-                    particleCount,
-                    origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 }
-                }));
+                confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } }));
+                confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } }));
             }, 250);
         }
 
         function changeBingoCount(delta) {
             bingoCount = Math.max(0, bingoCount + delta);
             updateBingoUI();
-
-            // Sync to Firebase
-            if (db) {
-                db.ref('bingo/state/bingoCount').set(bingoCount);
-            }
+            if (db) db.ref('bingo/state/bingoCount').set(bingoCount);
         }
 
         function updateBingoUI() {
-            if (bingoCountDisplay) {
-                bingoCountDisplay.innerText = bingoCount;
-            }
+            const label = document.getElementById('bingoCount');
+            if (label) label.innerText = bingoCount;
         }
 
-        // Reset Logic
         function confirmReset() {
-            if (confirm("確定要重置遊戲嗎？")) {
-                executeReset();
-            }
+            if (confirm("確定要重置遊戲嗎？")) executeReset();
         }
 
         function executeReset() {
             localStorage.removeItem('bingo_called');
             called = [];
-            mainDisplay.innerText = "--";
-            mainDisplay.classList.remove('active');
-
-            if (db) {
-                db.ref('bingo/state').set({
-                    called: [],
-                    maxNum: MAX_NUM,
-                    bingoCount: 0,
-                    lastUpdate: Date.now()
-                });
-            }
-
+            const display = document.getElementById('mainDisplay');
+            if (display) { display.innerText = "--"; display.classList.remove('active'); }
+            if (db) { db.ref('bingo/state').set({ called: [], maxNum: MAX_NUM, bingoCount: 0, lastUpdate: Date.now() }); }
             initPool();
         }
 
-        // Keyboard Support
-        document.addEventListener('keydown', (e) => {
-            if (e.code === 'Space' && !isRolling && pool.length > 0) {
-                draw();
+        function setupQR() {
+            const viewerUrl = new URL('board.html', window.location.href).href;
+            const qrContainer = document.getElementById("qrcode");
+            if (qrContainer) {
+                qrContainer.innerHTML = '';
+                new QRCode(qrContainer, { text: viewerUrl, width: 480, height: 480, colorDark: "#000000", colorLight: "#ffffff", correctLevel: QRCode.CorrectLevel.H });
             }
-        });
+        }
 
-        // Setup Firebase Listeners (Run once)
         function setupFirebaseListeners() {
             if (!db) return;
-
             db.ref('.info/connected').on('value', (snap) => {
-                if (snap.val() === true) {
-                    syncStatus.classList.add('online');
-                    syncText.innerText = "SYNC ON";
-                } else {
-                    syncStatus.classList.remove('online');
-                    syncText.innerText = "SYNCING...";
-                }
+                if (snap.val() === true) updateSyncStatus(true, "CONNECTED");
+                else updateSyncStatus(false, "SYNCING...");
             });
-
-            // Listen for changes from other masters
             db.ref('bingo/state').on('value', (snapshot) => {
                 const data = snapshot.val();
-
-                // 如果是空資料（例如剛重置），也要同步
-                if (!data) {
-                    return;
-                }
-
-                if (!isRolling) {
-                    const cloudCalled = data.called || [];
-                    const cloudLastUpdate = data.lastUpdate || 0;
-
-                    // 偵測是否為新的同步更新
-                    const isNewUpdate = cloudLastUpdate > lastSyncTime;
-                    const hasNumbers = cloudCalled.length > 0;
-
-                    // 同步雲端資料到本地
-                    if (JSON.stringify(cloudCalled) !== JSON.stringify(called)) {
-                        console.log("Syncing from cloud:", cloudCalled);
-                        called = cloudCalled;
-
-                        localStorage.setItem('bingo_called', JSON.stringify(called));
-
-                        // 同步 Max Num
-                        if (data.maxNum && data.maxNum !== MAX_NUM) {
-                            MAX_NUM = data.maxNum;
-                            maxNumInput.value = MAX_NUM;
-                            pool = Array.from({ length: MAX_NUM }, (_, i) => i + 1);
-                        } else if (pool.length === 0 && called.length === 0) {
-                            pool = Array.from({ length: MAX_NUM }, (_, i) => i + 1);
-                        }
-
-
-                        // Remove called numbers from pool
-                        called.forEach(num => {
-                            const idx = pool.indexOf(num);
-                            if (idx > -1) pool.splice(idx, 1);
-                        });
-
-                        renderGrid();
-                        updateStats();
-                        renderRecentHistory();
-
-                        if (called.length > 0) {
-                            mainDisplay.innerText = called[0];
-                            mainDisplay.classList.add('active');
-                        } else {
-                            mainDisplay.innerText = "--";
-                            mainDisplay.classList.remove('active');
-                        }
+                if (!data || isRolling) return;
+                const cloudCalled = data.called || [];
+                const cloudLastUpdate = data.lastUpdate || 0;
+                const isNewUpdate = cloudLastUpdate > lastSyncTime;
+                if (JSON.stringify(cloudCalled) !== JSON.stringify(called)) {
+                    called = cloudCalled;
+                    localStorage.setItem('bingo_called', JSON.stringify(called));
+                    if (data.maxNum && data.maxNum !== MAX_NUM) {
+                        MAX_NUM = data.maxNum;
+                        pool = Array.from({ length: MAX_NUM }, (_, i) => i + 1);
                     }
-
-                    // 「被動抽號同步」時觸發煙花的核心邏輯
-                    // 只有當不是本地發起的 isRolling 且 cloudLastUpdate 有更新時觸發
-                    if (isNewUpdate && lastSyncTime > 0 && hasNumbers) {
-                        console.log("External draw detected, triggering fireworks!");
-                        triggerVictory();
+                    called.forEach(num => {
+                        const idx = pool.indexOf(num);
+                        if (idx > -1) pool.splice(idx, 1);
+                    });
+                    renderGrid();
+                    updateStats();
+                    renderRecentHistory();
+                    const display = document.getElementById('mainDisplay');
+                    if (display) {
+                        if (called.length > 0) { display.innerText = called[0]; display.classList.add('active'); }
+                        else { display.innerText = "--"; display.classList.remove('active'); }
                     }
-
-                    // 更新本地記錄的時間戳
+                    if (isNewUpdate && lastSyncTime > 0 && called.length > 0) triggerVictory();
                     lastSyncTime = cloudLastUpdate;
                 }
-
-                // 同步 Bingo Count (獨立於抽號同步，確保手機修改時電腦端能即時更新)
                 if (data.bingoCount !== undefined && data.bingoCount !== bingoCount) {
-                    console.log("Syncing bingo count from cloud:", data.bingoCount);
                     bingoCount = data.bingoCount;
                     updateBingoUI();
                 }
             });
         }
 
-        // Start
-        initPool();
-        setupQR();
-        setupFirebaseListeners();
+        window.onload = function () {
+            checkVersion();
+            initPool();
+            setupQR();
+            const config = getFirebaseConfig();
+            if (config) {
+                try {
+                    firebase.initializeApp(config);
+                    db = firebase.database();
+                    firebase.auth().signInAnonymously().catch(e => updateSyncStatus(false, "AUTH ERROR"));
+                    setupFirebaseListeners();
+                } catch (e) { updateSyncStatus(false, "INIT ERROR"); }
+            } else {
+                if (!sessionStorage.getItem('bingo_skip_config')) setTimeout(showConfig, 1000);
+                updateSyncStatus(false, "LOCAL MODE", "#6b7280");
+            }
+            const mInput = document.getElementById('maxNumInput');
+            if (mInput) {
+                mInput.addEventListener('change', (e) => {
+                    const val = parseInt(e.target.value);
+                    if (val > 100) {
+                        alert("最大數字不能超過 100！");
+                        e.target.value = MAX_NUM;
+                        return;
+                    }
+                    if (val >= 10 && val <= 100) {
+                        if (called.length > 0) {
+                            if (confirm("更改最大數字將會重置目前進度，確定要繼續嗎？")) {
+                                MAX_NUM = val;
+                                localStorage.setItem('bingo_max_num', MAX_NUM);
+                                executeReset();
+                            } else { e.target.value = MAX_NUM; }
+                        } else {
+                            MAX_NUM = val;
+                            localStorage.setItem('bingo_max_num', MAX_NUM);
+                            initPool();
+                        }
+                    }
+                });
+            }
+            document.addEventListener('keydown', (e) => {
+                if (e.code === 'Space' && !isRolling && pool.length > 0) draw();
+            });
+        };
 
     </script>
 </body>

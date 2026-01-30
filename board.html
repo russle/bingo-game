@@ -7,7 +7,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Bingo 遊戲 | 觀眾端</title>
+    <title>Bingo Game! | 觀眾端</title>
     <link
         href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;900&family=JetBrains+Mono:wght@700&display=swap"
         rel="stylesheet">
@@ -719,7 +719,7 @@
         <div class="viewer-badge"><span>觀眾模式</span></div>
 
         <div class="logo-container">
-            <div class="logo">Bingo | F200</div>
+            <div class="logo">Bingo Game!</div>
 
             <div class="header-status-row">
                 <div class="bingo-stats">
@@ -759,28 +759,40 @@
 
     <script>
         let MAX_NUM = 75;
+        let pool = [];
         let called = [];
         let bingoCount = 0;
         let isRolling = false;
         let isMaster = true; // 是否為主控端 (預設是)
 
-        // Firebase Configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyA5hYkmkWU8xS5wgW2yxgyQa6oUv1Tk2t4",
-            authDomain: "my-bingo-2026.firebaseapp.com",
-            databaseURL: "https://my-bingo-2026-default-rtdb.asia-southeast1.firebasedatabase.app",
-            projectId: "my-bingo-2026",
-            storageBucket: "my-bingo-2026.firebasestorage.app",
-            messagingSenderId: "956278146181",
-            appId: "1:956278146181:web:bfb8e8b1208c0aea1a15ec"
-        };
+        // Configuration Management
+        function getFirebaseConfig() {
+            const savedConfig = localStorage.getItem('bingo_firebase_config');
+            return savedConfig ? JSON.parse(savedConfig) : null;
+        }
 
         let db = null;
-        try {
-            firebase.initializeApp(firebaseConfig);
-            db = firebase.database();
-        } catch (e) {
-            console.log("Firebase not configured, running in local mode.");
+        const config = getFirebaseConfig();
+
+        if (config) {
+            try {
+                firebase.initializeApp(config);
+                db = firebase.database();
+            } catch (e) {
+                console.log("Firebase init failed.");
+                updateSyncText("INIT ERROR");
+            }
+        } else {
+            console.log("Not configured.");
+            updateSyncText("SYNC DISABLED");
+        }
+
+        function updateSyncText(text) {
+            if (syncText) syncText.innerText = text;
+            if (syncStatus) {
+                syncStatus.style.background = '#6b7280';
+                syncStatus.style.boxShadow = 'none';
+            }
         }
 
         // DOM Elements (Viewer mode - limited elements)
