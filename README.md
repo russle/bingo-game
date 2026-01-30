@@ -1,8 +1,14 @@
 # Bingo Game! 🎲
 
+[繁體中文](#繁體中文) | [English](#english)
+
+---
+
+## 繁體中文
+
 一個現代化、美觀且功能強大的即時賓果抽號系統。專為活動主持、尾牙抽獎設計，支援多人同步顯示與本地/雲端雙模式。
 
-## ✨ 功能特點
+### ✨ 功能特點
 
 -   **雙模式支援**：
     -   **雲端同步模式**：整合 Firebase Realtime Database，抽號結果即時同步至所有連線裝置。
@@ -20,34 +26,49 @@
     -   支援空白鍵快捷抽號。
 -   **輕鬆安裝**：透過網頁介面直接配置 Firebase 資費，無需手動修改任何代碼文件。
 
-## 🚀 快速開始
+### 🚀 快速開始
 
-### 1. 準備 Firebase 專案（若需雲端同步）
-1. 前往 [Firebase Console](https://console.firebase.google.com/)。
-2. 建立新專案，並新增一個 **Web 應用程式**。
-3. 啟用 **Realtime Database**：
-    -   建議在 Rules 設定中確保具備讀寫權限。
-4. 啟用 **Authentication**：
-    -   開啟 **匿名 (Anonymous)** 登入方式以確保連線安全。
+1.  **準備 Firebase 專案**（若需雲端同步）：在 Firebase Console 建立專案，啟用 Realtime Database 與匿名登入。
+2.  **部署方式**：將所有檔案上傳至任何靜態託管空間（如 GitHub Pages）。
+3.  **開始使用**：開啟 `index.html`，根據提示輸入 Firebase 配置或選擇「本地模式」開始。
 
-### 2. 部署方式
-將此目錄下的檔案直接部署至任何靜態託管空間：
--   GitHub Pages
--   Vercel / Netlify
--   Firebase Hosting
+---
 
-### 3. 開始使用
-1. 開啟 `index.html`。
-2. **首次開啟**：系統會導引至配置頁面。
-    -   輸入 Firebase 配置以啟用同步。
-    -   或點擊「取消 (本地模式)」直接開始離線遊玩。
-3. **主控管理**：設定最大數字，點擊 **DRAW** 或按 **空白鍵** 開始抽號。
-4. **观众參與**：點擊右下角 QR Code 圖示，讓觀眾掃描進入 `board.html` 同步頁面。
+## English
 
-## 📂 文件結構
--   `index.html`: 主控端/管理員頁面（抽號、設定、人數管理）。
--   `board.html`: 觀眾端頁面（僅顯示結果與特效，適合大螢幕投放）。
--   `LICENSE`: MIT 授權文件。
+A modern, sleek, and powerful real-time Bingo system. Designed for event hosting and lucky draws, featuring multi-device synchronization and local/cloud dual modes.
 
-## 📜 授權協議
+### ✨ Features
+
+-   **Dual Mode Support**:
+    -   **Cloud Sync Mode**: Integrated with Firebase Realtime Database for instant synchronization across all connected devices.
+    -   **Local Mode**: Start immediately without Firebase configuration; game state is saved in the browser's `localStorage`.
+-   **Interactive Experience**:
+    -   Viewers can scan the **QR Code** in the bottom-right corner to open the viewer page (`board.html`) and see results in real-time.
+    -   Optimized for large screen displays with automatic firework effects upon drawing a number.
+-   **Flexible Configuration**:
+    -   Custom Range: Set any maximum number between **10 and 100**.
+    -   Real-time Stats: Automatically tracks drawn numbers and the remaining pool.
+    -   Bingo Counter: Manage the number of winners in real-time to keep control of the event.
+-   **Modern UI/UX**:
+    -   Fully Responsive Web Design (RWD) for mobile, tablet, and desktop.
+    -   Stunning **Glassmorphism** design style.
+    -   Hotkeys: Support for the **Spacebar** to draw numbers quickly.
+-   **Easy Setup**: Configure Firebase credentials directly through the web UI without touching the source code.
+
+### 🚀 Quick Start
+
+1.  **Prepare Firebase Project** (for Cloud Sync): Create a project in the Firebase Console, enable Realtime Database, and turn on Anonymous Authentication.
+2.  **Deployment**: Upload all files to any static hosting service (e.g., GitHub Pages, Netlify, or Vercel).
+3.  **Get Started**: Open `index.html`, follow the prompts to enter your Firebase config, or select "Local Mode" to play offline.
+
+---
+
+## 📂 文件結構 / File Structure
+-   `index.html`: 主控端管理頁面 / Master Control Panel.
+-   `board.html`: 觀眾同步頁面 / Synchronized Viewer Board.
+-   `LICENSE`: MIT 授權文件 / MIT License.
+
+## 📜 授權協議 / License
 本專案採用 [MIT License](LICENSE)，歡迎自由修改與分發。
+This project is licensed under the [MIT License](LICENSE).
